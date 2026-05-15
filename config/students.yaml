@@ -10,3 +10,11 @@ students:
   - email: student2@example.com
     courses:
       - investing-basics
+
+  - email: alenatravel@gmail.com
+    courses:
+      - investing-basics
+  
+  - email: natalya.fominykh@gmail.com
+    courses:
+      - investing-basics
