@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
-import { notFound } from "next/navigation";
-import { AccessDenied } from "@/components/AccessDenied";
+import { forbidden, notFound } from "next/navigation";
 import { CourseSidebar } from "@/components/course/CourseSidebar";
 import { DevStudentsYamlNote } from "@/components/DevStudentsYamlNote";
 import { canAccessCourse, getCurrentUserEmail } from "@/lib/authz";
@@ -28,12 +27,7 @@ export default async function CourseLayout({ children, params }: Props) {
 
   const email = await getCurrentUserEmail();
   if (!canAccessCourse(email, courseSlug)) {
-    return (
-      <div className="flex min-h-screen flex-col bg-zinc-50">
-        <AccessDenied courseSlug={courseSlug} />
-        <DevStudentsYamlNote />
-      </div>
-    );
+    forbidden();
   }
 
   return (

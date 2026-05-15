@@ -53,6 +53,10 @@ export default async function LessonPage({ params }: Props) {
   const hit = findLessonMeta(course, lessonSlug);
   if (!hit) notFound();
 
+  if (!isSafeSlug(hit.moduleSlug)) {
+    notFound();
+  }
+
   let source: string;
   try {
     source = loadLessonSource(courseSlug, hit.moduleSlug, lessonSlug);

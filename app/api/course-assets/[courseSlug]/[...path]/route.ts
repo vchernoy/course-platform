@@ -5,6 +5,7 @@ import { auth } from "@clerk/nextjs/server";
 import { isSafeSlug } from "@/lib/slug";
 import { canAccessCourse, getCurrentUserEmail } from "@/lib/authz";
 import { mimeForFile, safeAssetFilePath } from "@/lib/course-assets";
+import { logDevWarning, logProdDiagnostic } from "@/lib/logger";
 
 type RouteCtx = { params: Promise<{ courseSlug: string; path: string[] }> };
 
@@ -49,7 +50,9 @@ export async function GET(_req: Request, ctx: RouteCtx) {
         "Content-Length": String(st.size),
       },
     });
-  } catch {
+  } catch (err) {
+    logDevWarning("course-assets:get", err);
+    logProdDiagnostic("course-assets", "stream_failed");
     return new Response("Not found", { status: 404 });
   }
 }

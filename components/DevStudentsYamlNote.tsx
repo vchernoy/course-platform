@@ -1,4 +1,6 @@
-/** Dev-only hint; stripped in production (`NODE_ENV`). */
+/**
+ * Dev-only enrollment hint. Never shown in production (`NODE_ENV === "production"`).
+ */
 export function DevStudentsYamlNote() {
   if (process.env.NODE_ENV !== "development") return null;
   return (

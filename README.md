@@ -30,6 +30,13 @@ Small LMS prototype: course metadata in YAML under `content/courses`, lesson bod
 
 Restart `npm run dev` after changing `.env.local`.
 
+## Production notes
+
+- **404:** [`app/not-found.tsx`](app/not-found.tsx) for missing routes and `notFound()` from course/lesson loaders.
+- **403:** [`app/forbidden.tsx`](app/forbidden.tsx) when a signed-in user is not on the course allowlist (`forbidden()` from [`app/courses/[courseSlug]/layout.tsx`](app/courses/[courseSlug]/layout.tsx)).
+- **Headers:** [`next.config.ts`](next.config.ts) applies baseline headers (`X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, etc.).
+- **Logging:** [`lib/logger.ts`](lib/logger.ts) avoids dumping PII; the course-assets API logs coarse codes in production only.
+
 ## Environment variables
 
 | Variable | Required | Where |
@@ -114,7 +121,7 @@ Then open a course lesson (e.g. [lesson 1](http://localhost:3000/courses/investi
 
 1. Sign in with a Clerk user whose email is **not** in `students.yaml` (or remove their email from the file).
 2. Visit `/courses/investing-basics/lesson-1`.
-3. You should see **Access denied** and a **Sign out** button (middleware still requires sign-in for `/courses/*`).
+3. You should see **You do not have access to this course** (HTTP 403 via [`app/forbidden.tsx`](app/forbidden.tsx)) and a **Sign out** button (middleware still requires sign-in for `/courses/*`).
 
 ## Content layout
 
