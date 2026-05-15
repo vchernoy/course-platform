@@ -1,0 +1,12 @@
+students:
+  - email: vchernoy@gmail.com
+    courses:
+      - investing-basics
+
+  - email: student1@example.com
+    courses:
+      - investing-basics
+
+  - email: student2@example.com
+    courses:
+      - investing-basics

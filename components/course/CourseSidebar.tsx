@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { CourseMeta } from "@/lib/courses";
+import { CourseUserMenu } from "@/components/course/CourseUserMenu";
 
 type Props = {
   course: CourseMeta;
@@ -80,11 +81,12 @@ export function CourseSidebar({ course, courseSlug }: Props) {
       <aside
         className={
           open
-            ? "border-b border-zinc-200 bg-white lg:block lg:w-64 lg:flex-shrink-0 lg:border-b-0 lg:border-r"
-            : "hidden border-b border-zinc-200 bg-white lg:block lg:w-64 lg:flex-shrink-0 lg:border-b-0 lg:border-r"
+            ? "flex max-h-[min(70vh,28rem)] flex-col border-b border-zinc-200 bg-white lg:max-h-none lg:min-h-screen lg:w-64 lg:flex-shrink-0 lg:border-b-0 lg:border-r"
+            : "hidden max-h-[min(70vh,28rem)] flex-col border-b border-zinc-200 bg-white lg:flex lg:max-h-none lg:min-h-screen lg:w-64 lg:flex-shrink-0 lg:border-b-0 lg:border-r"
         }
       >
-        {nav}
+        <div className="min-h-0 flex-1 overflow-y-auto">{nav}</div>
+        <CourseUserMenu />
       </aside>
     </>
   );
