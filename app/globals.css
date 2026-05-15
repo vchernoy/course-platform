@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+@layer components {
+  .lesson-mdx {
+    @apply mx-auto max-w-3xl text-zinc-800 leading-relaxed;
+  }
+
+  .lesson-mdx h1 {
+    @apply mt-10 mb-4 text-3xl font-bold tracking-tight text-zinc-900;
+  }
+
+  .lesson-mdx h2 {
+    @apply mt-8 mb-3 text-xl font-semibold text-zinc-900;
+  }
+
+  .lesson-mdx p {
+    @apply mb-4;
+  }
+
+  .lesson-mdx ul {
+    @apply mb-4 list-disc space-y-1 pl-6;
+  }
+
+  .lesson-mdx strong {
+    @apply font-semibold text-zinc-900;
+  }
+}

@@ -1,0 +1,7 @@
+title: Investing basics
+modules:
+  - slug: module-1
+    title: Core concepts
+    lessons:
+      - slug: lesson-1
+        title: Compound interest and long-term growth
