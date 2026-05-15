@@ -44,8 +44,39 @@ Optional:
 | `NEXT_PUBLIC_CLERK_SIGN_IN_URL` | Defaults to `/sign-in` if unset |
 | `NEXT_PUBLIC_CLERK_SIGN_UP_URL` | Defaults to `/sign-up` if unset |
 | `NEXT_PUBLIC_SHOW_SIGN_UP_LINK` | Set to `false` to hide the home page **Sign up** link (use when Clerk sign-ups are disabled). Omit or any other value shows the link. |
+| `NEXT_PUBLIC_CLOUDFLARE_STREAM_CUSTOMER` | Optional. Host like `customer-xxxxx.cloudflarestream.com` for [`VideoPlayer`](components/mdx/VideoPlayer.tsx) Cloudflare embeds. If unset, `iframe.videodelivery.net` is used. |
 
 `.env.local` is gitignored; use [`.env.example`](.env.example) as a template.
+
+## Course assets and media
+
+### Lesson images (filesystem)
+
+- Put files under **`content/courses/<courseSlug>/assets/`** (e.g. [`content/courses/investing-basics/assets/`](content/courses/investing-basics/assets/)).
+- From a lesson MDX file inside `module-*`, reference them with a **relative** path:
+
+  `![Alt text](../assets/your-file.png)`
+
+  That path is rewritten at render time to an authenticated URL served by [`app/api/course-assets/[courseSlug]/[...path]/route.ts`](app/api/course-assets/[courseSlug]/[...path]/route.ts).
+
+- Or use the MDX component (filename is under the same `assets/` folder):
+
+  `<CourseImage src="your-file.png" alt="Description" />`
+
+Only users who pass the same **Clerk + [`students.yaml`](config/students.yaml)** checks as the course pages can load these URLs.
+
+### Video embeds
+
+Supported **`VideoPlayer`** providers (see [`components/mdx/VideoPlayer.tsx`](components/mdx/VideoPlayer.tsx)):
+
+| Provider | Props | Notes |
+|----------|--------|--------|
+| **Vimeo** | `provider="vimeo"`, `videoId`, optional `title`, `privacyHash` | `privacyHash` maps to Vimeo’s private/unlisted `h=` parameter. |
+| **Cloudflare Stream** | `provider="cloudflare"`, `playbackId`, optional `title` | Optional env **`NEXT_PUBLIC_CLOUDFLARE_STREAM_CUSTOMER`** for custom iframe host; otherwise uses `iframe.videodelivery.net`. |
+
+Optional **`poster`** is accepted for future use; iframe embeds ignore it today.
+
+**`<ProtectedVideo assetId="..." />`** remains a thin wrapper: it maps known `assetId` values to `VideoPlayer` props for older lessons. Prefer **`VideoPlayer`** with explicit IDs in new MDX.
 
 ## Students allowlist (`config/students.yaml`)
 
@@ -90,14 +121,17 @@ Then open a course lesson (e.g. [lesson 1](http://localhost:3000/courses/investi
 These tags are wired in [`app/courses/[courseSlug]/[lessonSlug]/page.tsx`](app/courses/[courseSlug]/[lessonSlug]/page.tsx):
 
 - `<CompoundInterestCalculator />`
-- `<ProtectedVideo assetId="..." />`
+- Markdown images: `![alt](../assets/file.png)` (see **Course assets and media**)
+- `<CourseImage src="file.png" alt="..." />`
+- `<VideoPlayer provider="vimeo" videoId="..." title="..." />` or `provider="cloudflare" playbackId="..."`
+- `<ProtectedVideo assetId="..." />` (legacy; delegates to `VideoPlayer`)
 - `<DownloadFile assetId="..." />`
 
 ### Adding a new lesson
 
 1. Edit `content/courses/<courseSlug>/course.yaml` — under the right module `lessons` list, add `{ slug: lesson-x, title: "..." }`. Use a unique `slug` within the course.
 2. Add the file `content/courses/<courseSlug>/<moduleSlug>/<lessonSlug>.mdx` (same `moduleSlug` as in YAML and same `lessonSlug` as in the entry).
-3. Use MDX components as needed (`CompoundInterestCalculator`, `ProtectedVideo`, `DownloadFile`).
+3. Use MDX components as needed (`CompoundInterestCalculator`, `CourseImage`, `VideoPlayer`, `ProtectedVideo`, `DownloadFile`).
 
 ## Scripts
 

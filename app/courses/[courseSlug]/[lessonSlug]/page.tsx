@@ -1,10 +1,14 @@
 import { compileMDX } from "next-mdx-remote/rsc";
 import type { Metadata } from "next";
+import type { ImgHTMLAttributes } from "react";
 import { notFound } from "next/navigation";
 import { CompoundInterestCalculator } from "@/components/mdx/CompoundInterestCalculator";
+import { CourseImage } from "@/components/mdx/CourseImage";
 import { DownloadFile } from "@/components/mdx/DownloadFile";
 import { ProtectedVideo } from "@/components/mdx/ProtectedVideo";
+import { VideoPlayer } from "@/components/mdx/VideoPlayer";
 import { LessonPager } from "@/components/course/LessonPager";
+import { rewriteLessonAssetUrls } from "@/lib/course-assets";
 import {
   findLessonMeta,
   getLessonNeighbors,
@@ -48,10 +52,29 @@ export default async function LessonPage({ params }: Props) {
     notFound();
   }
 
+  const mdxSource = rewriteLessonAssetUrls(source, courseSlug);
+
   const { content } = await compileMDX({
-    source,
+    source: mdxSource,
     components: {
       CompoundInterestCalculator,
+      CourseImage: (props: { src?: string; alt?: string; className?: string }) => (
+        <CourseImage
+          courseSlug={courseSlug}
+          src={props.src ?? ""}
+          alt={props.alt ?? ""}
+          className={props.className}
+        />
+      ),
+      img: (props: ImgHTMLAttributes<HTMLImageElement>) => (
+        <CourseImage
+          courseSlug={courseSlug}
+          src={typeof props.src === "string" ? props.src : ""}
+          alt={props.alt ?? ""}
+          className={props.className}
+        />
+      ),
+      VideoPlayer,
       ProtectedVideo,
       DownloadFile,
     },
