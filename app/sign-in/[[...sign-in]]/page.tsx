@@ -1,9 +1,14 @@
 import { SignIn } from "@clerk/nextjs";
+import { clerkAppearance } from "@/lib/clerk-appearance";
 
 export default function SignInPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 py-12">
-      <SignIn routing="path" path="/sign-in" />
+      <SignIn
+        routing="path"
+        path="/sign-in"
+        appearance={clerkAppearance}
+      />
     </main>
   );
 }

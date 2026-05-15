@@ -24,7 +24,9 @@ Small LMS prototype: course metadata in YAML under `content/courses`, lesson bod
 
 5. Under **Configure → Paths**, ensure redirect URLs match your app (for local dev, `http://localhost:3000` is typical). If Clerk asks for sign-in/sign-up URLs, use **`/sign-in`** and **`/sign-up`** (these routes exist in this repo).
 
-6. **Create test users** in Clerk (**Users → Create user**) with emails that match [`config/students.yaml`](config/students.yaml) for authorized testing, and another email **not** listed there for unauthorized testing.
+6. **Authentication strategies**: Prefer **OAuth** and/or **passwordless email** (magic link or verification code). In Clerk (**Configure → User authentication → Authentication strategies**), **disable the Password strategy** so users never see password fields. Our UI copy avoids passwords; Clerk wording still follows what you enable in the dashboard.
+
+7. **Create test users** in Clerk (**Users → Create user**) with emails that match [`config/students.yaml`](config/students.yaml) for authorized testing, and another email **not** listed there for unauthorized testing.
 
 Restart `npm run dev` after changing `.env.local`.
 
@@ -35,12 +37,13 @@ Restart `npm run dev` after changing `.env.local`.
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Yes | `.env.local` |
 | `CLERK_SECRET_KEY` | Yes | `.env.local` |
 
-Optional (only if Clerk dashboard or deployment requires them):
+Optional:
 
 | Variable | Purpose |
 |----------|---------|
 | `NEXT_PUBLIC_CLERK_SIGN_IN_URL` | Defaults to `/sign-in` if unset |
 | `NEXT_PUBLIC_CLERK_SIGN_UP_URL` | Defaults to `/sign-up` if unset |
+| `NEXT_PUBLIC_SHOW_SIGN_UP_LINK` | Set to `false` to hide the home page **Sign up** link (use when Clerk sign-ups are disabled). Omit or any other value shows the link. |
 
 `.env.local` is gitignored; use [`.env.example`](.env.example) as a template.
 
@@ -59,13 +62,15 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000), sign in, then open a course lesson (e.g. [lesson 1](http://localhost:3000/courses/investing-basics/lesson-1)).
+Open [http://localhost:3000](http://localhost:3000). **Signed out:** you should see “Sign in to access courses”, a **Sign in** button, and optionally **Need an account? Sign up** (unless `NEXT_PUBLIC_SHOW_SIGN_UP_LINK=false` — see the **Environment variables** table). **Signed in:** “Welcome back”, your email, **Open lesson 1**, and **Sign out**.
+
+Then open a course lesson (e.g. [lesson 1](http://localhost:3000/courses/investing-basics/lesson-1)). In **`npm run dev`** only, a footer note appears on course pages: **Access controlled by config/students.yaml**. It does **not** appear after `npm run build` / production.
 
 ### How to test access
 
 **a) Authorized student**
 
-1. Add the user’s email to `config/students.yaml` under `courses` including `investing-basics` (sample emails `student1@example.com` / `student2@example.com` are already listed—create matching users in Clerk or change the YAML to your email).
+1. Ensure the user’s email appears in [`config/students.yaml`](config/students.yaml) under `courses` including `investing-basics` (open that file for the current allowlist).
 2. Sign in as that user.
 3. Visit `/courses/investing-basics/lesson-1` (or use **Open lesson 1** on the home page). You should see the course sidebar and lesson content.
 

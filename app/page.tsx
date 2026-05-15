@@ -1,41 +1,56 @@
-import { Show } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
+import { HomeSignOutButton } from "@/components/HomeSignOutButton";
+import { getCurrentUserEmail } from "@/lib/authz";
+
+function signUpLinkEnabled(): boolean {
+  const v = process.env.NEXT_PUBLIC_SHOW_SIGN_UP_LINK;
+  if (v == null || v === "") return true;
+  return v.toLowerCase() !== "false";
+}
 
 export default async function HomePage() {
-  return (
-    <main className="mx-auto flex max-w-lg flex-col gap-6 px-6 py-16">
-      <h1 className="text-2xl font-semibold text-zinc-900">
-        Course platform (prototype)
-      </h1>
-      <p className="text-zinc-600">
-        Sign in to access courses. Enrollment is controlled by{" "}
-        <span className="font-mono text-sm">config/students.yaml</span>.
-      </p>
-      <Show when="signed-out">
-        <div className="flex flex-col gap-3">
-          <Link
-            href="/sign-in"
-            className="inline-flex w-fit rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
-          >
-            Sign in
-          </Link>
-          <p className="text-sm text-zinc-500">
-            No account yet?{" "}
-            <Link href="/sign-up" className="underline hover:text-zinc-800">
-              Sign up
-            </Link>{" "}
-            (or create users in the Clerk dashboard).
-          </p>
-        </div>
-      </Show>
-      <Show when="signed-in">
+  const { userId } = await auth();
+
+  if (!userId) {
+    return (
+      <main className="mx-auto flex max-w-lg flex-col gap-6 px-6 py-16">
+        <h1 className="text-2xl font-semibold text-zinc-900">
+          Course platform
+        </h1>
+        <p className="text-zinc-600">Sign in to access courses.</p>
         <Link
-          href="/courses/investing-basics/lesson-1"
+          href="/sign-in"
           className="inline-flex w-fit rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
         >
-          Open lesson 1
+          Sign in
         </Link>
-      </Show>
+        {signUpLinkEnabled() ? (
+          <p className="text-sm text-zinc-500">
+            Need an account?{" "}
+            <Link href="/sign-up" className="underline hover:text-zinc-800">
+              Sign up
+            </Link>
+          </p>
+        ) : null}
+      </main>
+    );
+  }
+
+  const email = await getCurrentUserEmail();
+
+  return (
+    <main className="mx-auto flex max-w-lg flex-col gap-6 px-6 py-16">
+      <h1 className="text-2xl font-semibold text-zinc-900">Course platform</h1>
+      <p className="text-lg font-medium text-zinc-900">Welcome back</p>
+      <p className="text-sm text-zinc-600">{email ?? "Signed in"}</p>
+      <Link
+        href="/courses/investing-basics/lesson-1"
+        className="inline-flex w-fit rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+      >
+        Open lesson 1
+      </Link>
+      <HomeSignOutButton />
     </main>
   );
 }
