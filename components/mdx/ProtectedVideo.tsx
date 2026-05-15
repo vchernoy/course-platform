@@ -4,7 +4,8 @@ import { VideoPlayer } from "@/components/mdx/VideoPlayer";
 type Props = { assetId: string };
 
 /**
- * Back-compat MDX tag: maps assetId → VideoPlayer props (public iframe embeds only — not DRM).
+ * Back-compat MDX tag: maps assetId → `VideoPlayer` props (public iframe embeds — not DRM).
+ * The registry intentionally mixes providers so Vimeo and Cloudflare paths both stay exercised.
  */
 const VIDEO_BY_ASSET_ID: Record<string, VideoPlayerProps> = {
   "demo-video-1": {
@@ -13,8 +14,8 @@ const VIDEO_BY_ASSET_ID: Record<string, VideoPlayerProps> = {
     title: "Introduction clip",
   },
   "risk-return-overview": {
-    provider: "vimeo",
-    videoId: "76979871",
+    provider: "cloudflare",
+    playbackId: process.env.NEXT_PUBLIC_CLOUDFLARE_DEMO_PLAYBACK_ID?.trim() ?? "",
     title: "Risk and return overview",
   },
   "diversification-explainer": {

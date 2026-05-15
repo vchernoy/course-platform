@@ -45,6 +45,7 @@ Optional:
 | `NEXT_PUBLIC_CLERK_SIGN_UP_URL` | Defaults to `/sign-up` if unset |
 | `NEXT_PUBLIC_SHOW_SIGN_UP_LINK` | Set to `false` to hide the home page **Sign up** link (use when Clerk sign-ups are disabled). Omit or any other value shows the link. |
 | `NEXT_PUBLIC_CLOUDFLARE_STREAM_CUSTOMER` | Optional. Host like `customer-xxxxx.cloudflarestream.com` for [`VideoPlayer`](components/mdx/VideoPlayer.tsx) Cloudflare embeds. If unset, `iframe.videodelivery.net` is used. |
+| `NEXT_PUBLIC_CLOUDFLARE_DEMO_PLAYBACK_ID` | Optional. Populates the Cloudflare branch of the legacy [`ProtectedVideo`](components/mdx/ProtectedVideo.tsx) mapping for `risk-return-overview`. Prefer explicit `playbackId` on `<VideoPlayer />` in real content. |
 
 `.env.local` is gitignored; use [`.env.example`](.env.example) as a template.
 
@@ -67,16 +68,20 @@ Only users who pass the same **Clerk + [`students.yaml`](config/students.yaml)**
 
 ### Video embeds
 
+**Choosing a provider:** [**Vimeo**](https://vimeo.com/) is convenient for an MVP—quick uploads and a familiar dashboard—while iframe playback stays simple public embeds (not DRM). [**Cloudflare Stream**](https://www.cloudflare.com/developer-platform/products/cloudflare-stream/) is the preferred long-term direction here for signed URLs, token-gated playback, and platform alignment; this repo still uses plain iframe embeds with `playbackId` until you wire signing server-side. **Both providers remain first-class:** pick per lesson via `VideoPlayer` props or the `ProtectedVideo` registry—do not standardize on a single provider in code.
+
 Supported **`VideoPlayer`** providers (see [`components/mdx/VideoPlayer.tsx`](components/mdx/VideoPlayer.tsx)):
 
 | Provider | Props | Notes |
 |----------|--------|--------|
-| **Vimeo** | `provider="vimeo"`, `videoId`, optional `title`, `privacyHash` | `privacyHash` maps to Vimeo’s private/unlisted `h=` parameter. |
-| **Cloudflare Stream** | `provider="cloudflare"`, `playbackId`, optional `title` | Optional env **`NEXT_PUBLIC_CLOUDFLARE_STREAM_CUSTOMER`** for custom iframe host; otherwise uses `iframe.videodelivery.net`. |
+| **Vimeo** | `provider="vimeo"`, `videoId`, optional `title`, `privacyHash` | `privacyHash` maps to Vimeo’s private/unlisted `h=` parameter. Not enterprise DRM. |
+| **Cloudflare Stream** | `provider="cloudflare"`, `playbackId`, optional `title` | Optional env **`NEXT_PUBLIC_CLOUDFLARE_STREAM_CUSTOMER`** for custom iframe host; otherwise uses `iframe.videodelivery.net`. Signed URLs/tokens are not implemented in this prototype. |
 
 Optional **`poster`** is accepted for future use; iframe embeds ignore it today.
 
-**`<ProtectedVideo assetId="..." />`** remains a thin wrapper: it maps known `assetId` values to `VideoPlayer` props for older lessons. Prefer **`VideoPlayer`** with explicit IDs in new MDX.
+**`<ProtectedVideo assetId="..." />`** maps known IDs to **either** provider’s `VideoPlayerProps` (sample course mixes Vimeo and Cloudflare). Prefer **`VideoPlayer`** with explicit props in new MDX. For the bundled **`risk-return-overview`** asset, set **`NEXT_PUBLIC_CLOUDFLARE_DEMO_PLAYBACK_ID`** or swap the lesson to an explicit `<VideoPlayer provider="cloudflare" playbackId="..." />`.
+
+In the sample **investing-basics** modules, lesson 1 embeds Vimeo via `<VideoPlayer />` directly; lesson 2 uses `<ProtectedVideo />` → Cloudflare (`playbackId` from env or the amber placeholder message); lesson 3 uses `<ProtectedVideo />` → Vimeo.
 
 ## Students allowlist (`config/students.yaml`)
 

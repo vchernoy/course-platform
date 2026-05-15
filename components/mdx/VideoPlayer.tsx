@@ -1,9 +1,15 @@
+/**
+ * Hosted video embeds: pick a **provider** per usage (MDX or `ProtectedVideo` registry).
+ *
+ * - **Vimeo** — convenient for an MVP (simple publishing, familiar tooling). Still a public iframe:
+ *   not DRM; optional `privacyHash` only maps to Vimeo’s `h=` param for private/unlisted embeds.
+ * - **Cloudflare Stream** — preferred long-term for this stack: signed URLs / token playback and
+ *   platform fit (not wired in this repo yet — iframe uses `playbackId` only).
+ *
+ * Keep both code paths active; do not assume a single provider across the app.
+ */
 export type VideoPlayerProps =
   | {
-      /**
-       * Vimeo iframe embed. NOT DRM: anyone with the URL or embed ID can often view or share it.
-       * Private/unlisted uses `privacyHash` but is still not enterprise content protection.
-       */
       provider: "vimeo";
       videoId: string;
       title?: string;
@@ -13,7 +19,6 @@ export type VideoPlayerProps =
       privacyHash?: string;
     }
   | {
-      /** Cloudflare Stream iframe embed; signed URLs / tokens are not implemented here. */
       provider: "cloudflare";
       playbackId: string;
       title?: string;
@@ -29,13 +34,32 @@ function cloudflareIframeSrc(playbackId: string): string {
 }
 
 export function VideoPlayer(props: VideoPlayerProps) {
-  let iframeSrc: string;
+  let iframeSrc: string | null = null;
 
   if (props.provider === "vimeo") {
     const q = props.privacyHash ? `?h=${encodeURIComponent(props.privacyHash)}` : "";
     iframeSrc = `https://player.vimeo.com/video/${props.videoId}${q}`;
+  } else if (props.provider === "cloudflare") {
+    const id = props.playbackId.trim();
+    if (!id) {
+      return (
+        <figure className="my-8">
+          {props.title ? (
+            <figcaption className="mb-2 text-sm font-medium text-zinc-800">{props.title}</figcaption>
+          ) : null}
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            Cloudflare Stream needs a non-empty <code className="font-mono">playbackId</code>. Set it
+            on <code className="font-mono">VideoPlayer</code> in MDX, or{" "}
+            <code className="font-mono">NEXT_PUBLIC_CLOUDFLARE_DEMO_PLAYBACK_ID</code> for the sample{" "}
+            <code className="font-mono">ProtectedVideo</code> mapping.
+          </div>
+        </figure>
+      );
+    }
+    iframeSrc = cloudflareIframeSrc(id);
   } else {
-    iframeSrc = cloudflareIframeSrc(props.playbackId);
+    const _exhaustive: never = props;
+    return _exhaustive;
   }
 
   const title = props.title ?? "Video";
