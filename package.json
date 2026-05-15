@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "tsx --test tests/**/*.test.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.3.4",
@@ -26,6 +27,7 @@
     "eslint-config-next": "^16.2.6",
     "postcss": "^8.5.14",
     "tailwindcss": "^4.3.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.0"
   }
 }

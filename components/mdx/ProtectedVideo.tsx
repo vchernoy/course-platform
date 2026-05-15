@@ -4,8 +4,7 @@ import { VideoPlayer } from "@/components/mdx/VideoPlayer";
 type Props = { assetId: string };
 
 /**
- * Back-compat MDX tag: maps assetId → VideoPlayer props.
- * New lessons should prefer `<VideoPlayer … />` directly.
+ * Back-compat MDX tag: maps assetId → VideoPlayer props (public iframe embeds only — not DRM).
  */
 const VIDEO_BY_ASSET_ID: Record<string, VideoPlayerProps> = {
   "demo-video-1": {

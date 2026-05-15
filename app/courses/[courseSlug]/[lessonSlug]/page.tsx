@@ -15,6 +15,7 @@ import {
   loadCourse,
   loadLessonSource,
 } from "@/lib/courses";
+import { isSafeSlug } from "@/lib/slug";
 
 type Props = {
   params: Promise<{ courseSlug: string; lessonSlug: string }>;
@@ -22,6 +23,9 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { courseSlug, lessonSlug } = await params;
+  if (!isSafeSlug(courseSlug) || !isSafeSlug(lessonSlug)) {
+    return { title: "Not found" };
+  }
   try {
     const course = loadCourse(courseSlug);
     const hit = findLessonMeta(course, lessonSlug);
@@ -34,6 +38,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function LessonPage({ params }: Props) {
   const { courseSlug, lessonSlug } = await params;
+
+  if (!isSafeSlug(courseSlug) || !isSafeSlug(lessonSlug)) {
+    notFound();
+  }
 
   let course;
   try {

@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import yaml from "yaml";
+import { isSafeSlug } from "@/lib/slug";
 
 export type StudentEntry = { email: string; courses: string[] };
 export type StudentsConfig = { students: StudentEntry[] };
@@ -49,16 +50,24 @@ export function validateStudentsContent(raw: unknown): StudentsConfig {
     if (s.courses.length === 0) {
       throw new Error(prefix(`students[${i}].courses must contain at least one course slug`));
     }
-    const courses: string[] = [];
-    for (let ci = 0; ci < s.courses.length; ci++) {
-      const c = s.courses[ci];
-      if (typeof c !== "string" || !c.trim()) {
-        throw new Error(
-          prefix(`students[${i}].courses[${ci}] must be a non-empty string`)
-        );
+      const courses: string[] = [];
+      for (let ci = 0; ci < s.courses.length; ci++) {
+        const c = s.courses[ci];
+        if (typeof c !== "string" || !c.trim()) {
+          throw new Error(
+            prefix(`students[${i}].courses[${ci}] must be a non-empty string`)
+          );
+        }
+        const courseSlug = c.trim();
+        if (!isSafeSlug(courseSlug)) {
+          throw new Error(
+            prefix(
+              `students[${i}].courses[${ci}] invalid course slug: ${JSON.stringify(courseSlug)}`
+            )
+          );
+        }
+        courses.push(courseSlug);
       }
-      courses.push(c.trim());
-    }
     students.push({ email: s.email.trim(), courses });
   }
 
@@ -66,6 +75,21 @@ export function validateStudentsContent(raw: unknown): StudentsConfig {
 }
 
 const STUDENTS_PATH = path.join(process.cwd(), "config", "students.yaml");
+
+/** Pure allowlist check (used by tests and `emailHasCourseAccess`). */
+export function studentAllowsCourse(
+  config: StudentsConfig,
+  email: string,
+  courseSlug: string
+): boolean {
+  const e = normalizeEmail(email);
+  const slug = courseSlug.trim();
+  for (const s of config.students) {
+    if (normalizeEmail(s.email) !== e) continue;
+    return s.courses.some((c) => c === slug);
+  }
+  return false;
+}
 
 export function loadStudents(): StudentsConfig {
   if (!fs.existsSync(STUDENTS_PATH)) {
@@ -75,14 +99,18 @@ export function loadStudents(): StudentsConfig {
   return validateStudentsContent(raw);
 }
 
+/** Pure allowlist check for tests and composition (no filesystem). */
+export function canAccessCourseWithConfig(
+  email: string | undefined,
+  courseSlug: string,
+  config: StudentsConfig
+): boolean {
+  if (!email || !isSafeSlug(courseSlug)) return false;
+  return studentAllowsCourse(config, email, courseSlug);
+}
+
 /** Server-only allowlist check (reads students.yaml). */
 export function emailHasCourseAccess(email: string, courseSlug: string): boolean {
-  const { students } = loadStudents();
-  const e = normalizeEmail(email);
-  const slug = courseSlug.trim();
-  for (const s of students) {
-    if (normalizeEmail(s.email) !== e) continue;
-    return s.courses.some((c) => c === slug);
-  }
-  return false;
+  if (!isSafeSlug(courseSlug)) return false;
+  return studentAllowsCourse(loadStudents(), email, courseSlug);
 }

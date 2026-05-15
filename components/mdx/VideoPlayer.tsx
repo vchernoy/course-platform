@@ -1,5 +1,9 @@
 export type VideoPlayerProps =
   | {
+      /**
+       * Vimeo iframe embed. NOT DRM: anyone with the URL or embed ID can often view or share it.
+       * Private/unlisted uses `privacyHash` but is still not enterprise content protection.
+       */
       provider: "vimeo";
       videoId: string;
       title?: string;
@@ -9,6 +13,7 @@ export type VideoPlayerProps =
       privacyHash?: string;
     }
   | {
+      /** Cloudflare Stream iframe embed; signed URLs / tokens are not implemented here. */
       provider: "cloudflare";
       playbackId: string;
       title?: string;

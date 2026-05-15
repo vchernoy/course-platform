@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import yaml from "yaml";
+import { assertSafeSlug, isSafeSlug } from "@/lib/slug";
 
 export type LessonMeta = { slug: string; title: string };
 export type ModuleMeta = {
@@ -50,6 +51,10 @@ export function validateCourseContent(raw: unknown): CourseMeta {
     if (typeof m.slug !== "string" || !m.slug.trim()) {
       throw new Error(prefix(`modules[${mi}].slug must be a non-empty string`));
     }
+    const moduleSlug = m.slug.trim();
+    if (!isSafeSlug(moduleSlug)) {
+      throw new Error(prefix(`modules[${mi}].slug has invalid format: ${JSON.stringify(moduleSlug)}`));
+    }
     if (typeof m.title !== "string" || !m.title.trim()) {
       throw new Error(prefix(`modules[${mi}].title must be a non-empty string`));
     }
@@ -75,16 +80,24 @@ export function validateCourseContent(raw: unknown): CourseMeta {
           prefix(`modules[${mi}].lessons[${li}].slug must be a non-empty string`)
         );
       }
+      const lessonSlug = l.slug.trim();
+      if (!isSafeSlug(lessonSlug)) {
+        throw new Error(
+          prefix(
+            `modules[${mi}].lessons[${li}].slug has invalid format: ${JSON.stringify(lessonSlug)}`
+          )
+        );
+      }
       if (typeof l.title !== "string" || !l.title.trim()) {
         throw new Error(
           prefix(`modules[${mi}].lessons[${li}].title must be a non-empty string`)
         );
       }
-      lessons.push({ slug: l.slug.trim(), title: l.title.trim() });
+      lessons.push({ slug: lessonSlug, title: l.title.trim() });
     }
 
     modules.push({
-      slug: m.slug.trim(),
+      slug: moduleSlug,
       title: m.title.trim(),
       lessons,
     });
@@ -96,6 +109,7 @@ export function validateCourseContent(raw: unknown): CourseMeta {
 const CONTENT_ROOT = path.join(process.cwd(), "content", "courses");
 
 export function loadCourse(courseSlug: string): CourseMeta {
+  assertSafeSlug("courseSlug", courseSlug);
   const coursePath = path.join(CONTENT_ROOT, courseSlug, "course.yaml");
   if (!fs.existsSync(coursePath)) {
     throw new Error(`Course not found: ${courseSlug} (missing ${coursePath})`);
@@ -156,6 +170,9 @@ export function loadLessonSource(
   moduleSlug: string,
   lessonSlug: string
 ): string {
+  assertSafeSlug("courseSlug", courseSlug);
+  assertSafeSlug("moduleSlug", moduleSlug);
+  assertSafeSlug("lessonSlug", lessonSlug);
   const filePath = getLessonFilePath(courseSlug, moduleSlug, lessonSlug);
   if (!fs.existsSync(filePath)) {
     throw new Error(`Lesson file missing: ${filePath}`);

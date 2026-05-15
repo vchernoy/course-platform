@@ -5,6 +5,7 @@ import { CourseSidebar } from "@/components/course/CourseSidebar";
 import { DevStudentsYamlNote } from "@/components/DevStudentsYamlNote";
 import { canAccessCourse, getCurrentUserEmail } from "@/lib/authz";
 import { loadCourse } from "@/lib/courses";
+import { isSafeSlug } from "@/lib/slug";
 
 type Props = {
   children: ReactNode;
@@ -13,6 +14,10 @@ type Props = {
 
 export default async function CourseLayout({ children, params }: Props) {
   const { courseSlug } = await params;
+
+  if (!isSafeSlug(courseSlug)) {
+    notFound();
+  }
 
   let course;
   try {
