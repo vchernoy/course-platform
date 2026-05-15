@@ -104,6 +104,41 @@ export function loadCourse(courseSlug: string): CourseMeta {
   return validateCourseContent(raw);
 }
 
+export type LessonNavItem = {
+  moduleSlug: string;
+  lessonSlug: string;
+  title: string;
+};
+
+/** Flatten modules → lessons in YAML order (used for nav and prev/next). */
+export function getOrderedLessons(course: CourseMeta): LessonNavItem[] {
+  const items: LessonNavItem[] = [];
+  for (const mod of course.modules) {
+    for (const les of mod.lessons) {
+      items.push({
+        moduleSlug: mod.slug,
+        lessonSlug: les.slug,
+        title: les.title,
+      });
+    }
+  }
+  return items;
+}
+
+/** Adjacent lessons in course order. Lesson slugs should be unique per course. */
+export function getLessonNeighbors(
+  course: CourseMeta,
+  lessonSlug: string
+): { prev: LessonNavItem | null; next: LessonNavItem | null } {
+  const items = getOrderedLessons(course);
+  const idx = items.findIndex((i) => i.lessonSlug === lessonSlug);
+  if (idx === -1) return { prev: null, next: null };
+  return {
+    prev: idx > 0 ? items[idx - 1]! : null,
+    next: idx < items.length - 1 ? items[idx + 1]! : null,
+  };
+}
+
 export function findLessonMeta(course: CourseMeta, lessonSlug: string): LessonMeta & { moduleSlug: string } | null {
   for (const mod of course.modules) {
     const lesson = mod.lessons.find((l) => l.slug === lessonSlug);

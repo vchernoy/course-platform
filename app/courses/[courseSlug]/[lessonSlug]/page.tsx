@@ -4,8 +4,10 @@ import { notFound } from "next/navigation";
 import { CompoundInterestCalculator } from "@/components/mdx/CompoundInterestCalculator";
 import { DownloadFile } from "@/components/mdx/DownloadFile";
 import { ProtectedVideo } from "@/components/mdx/ProtectedVideo";
+import { LessonPager } from "@/components/course/LessonPager";
 import {
   findLessonMeta,
+  getLessonNeighbors,
   loadCourse,
   loadLessonSource,
 } from "@/lib/courses";
@@ -55,13 +57,16 @@ export default async function LessonPage({ params }: Props) {
     },
   });
 
+  const { prev, next } = getLessonNeighbors(course, lessonSlug);
+
   return (
-    <main className="mx-auto max-w-3xl px-6 py-12">
+    <main className="mx-auto max-w-3xl px-6 py-8 lg:py-12">
       <p className="text-sm font-medium text-zinc-500">{course.title}</p>
       <h1 className="mt-1 text-3xl font-bold tracking-tight text-zinc-900">
         {hit.title}
       </h1>
       <article className="lesson-mdx mt-10">{content}</article>
+      <LessonPager courseSlug={courseSlug} prev={prev} next={next} />
     </main>
   );
 }

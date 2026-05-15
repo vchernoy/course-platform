@@ -4,4 +4,8 @@ modules:
     title: Core concepts
     lessons:
       - slug: lesson-1
-        title: Compound interest and long-term growth
+        title: Compounding
+      - slug: lesson-2
+        title: Risk and return
+      - slug: lesson-3
+        title: Diversification
