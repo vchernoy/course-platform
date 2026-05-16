@@ -152,6 +152,21 @@ Wired in [`app/offerings/[offeringSlug]/[lessonSlug]/page.tsx`](app/offerings/[o
 - `<VideoPlayer … />`
 - `<DownloadFile assetId="..." />`
 
+Lessons are compiled with **remark-math** and **rehype-katex** ([`app/offerings/[offeringSlug]/[lessonSlug]/page.tsx`](app/offerings/[offeringSlug]/[lessonSlug]/page.tsx)); KaTeX CSS is loaded from the root layout.
+
+### Using LaTeX
+
+- **Inline math:** wrap TeX in single dollar signs, e.g. `$E = mc^2$`.
+- **Block math:** use `$$` on its own lines:
+
+  ```markdown
+  $$
+  \sum_{i=1}^n i = \frac{n(n+1)}{2}
+  $$
+  ```
+
+- A literal dollar sign in prose may need escaping (e.g. `\$100`) so it is not parsed as math.
+
 ### Adding a new lesson
 
 1. Edit **`offering.yaml`** — add `{ slug, title }` under the right module **`lessons`**.

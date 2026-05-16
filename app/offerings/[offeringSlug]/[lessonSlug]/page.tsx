@@ -2,6 +2,8 @@ import { compileMDX } from "next-mdx-remote/rsc";
 import type { Metadata } from "next";
 import type { ImgHTMLAttributes } from "react";
 import { notFound } from "next/navigation";
+import rehypeKatex from "rehype-katex";
+import remarkMath from "remark-math";
 import { CompoundInterestCalculator } from "@/components/mdx/CompoundInterestCalculator";
 import { CourseImage } from "@/components/mdx/CourseImage";
 import { DownloadFile } from "@/components/mdx/DownloadFile";
@@ -78,6 +80,12 @@ export default async function LessonPage({ params }: Props) {
 
   const { content } = await compileMDX({
     source: mdxSource,
+    options: {
+      mdxOptions: {
+        remarkPlugins: [remarkMath],
+        rehypePlugins: [rehypeKatex],
+      },
+    },
     components: {
       CompoundInterestCalculator,
       CourseImage: (props: { src?: string; alt?: string; className?: string }) => (

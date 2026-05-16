@@ -24,4 +24,9 @@
   .lesson-mdx strong {
     @apply font-semibold text-zinc-900;
   }
+
+  .lesson-mdx .katex-display {
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
 }
