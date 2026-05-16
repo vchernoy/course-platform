@@ -52,7 +52,6 @@ Optional:
 | `NEXT_PUBLIC_CLERK_SIGN_UP_URL` | Defaults to `/sign-up` if unset |
 | `NEXT_PUBLIC_SHOW_SIGN_UP_LINK` | Set to `false` to hide the home page **Sign up** link (use when Clerk sign-ups are disabled). Omit or any other value shows the link. |
 | `NEXT_PUBLIC_CLOUDFLARE_STREAM_CUSTOMER` | Optional. Host like `customer-xxxxx.cloudflarestream.com` for [`VideoPlayer`](components/mdx/VideoPlayer.tsx) Cloudflare embeds. If unset, `iframe.videodelivery.net` is used. |
-| `NEXT_PUBLIC_CLOUDFLARE_DEMO_PLAYBACK_ID` | Optional. Populates the Cloudflare branch of the legacy [`ProtectedVideo`](components/mdx/ProtectedVideo.tsx) mapping for `risk-return-overview`. Prefer explicit `playbackId` on `<VideoPlayer />` in real content. |
 
 `.env.local` is gitignored; use [`.env.example`](.env.example) as a template.
 
@@ -75,20 +74,48 @@ Only users who pass the same **Clerk + [`students.yaml`](config/students.yaml)**
 
 ### Video embeds
 
-**Choosing a provider:** [**Vimeo**](https://vimeo.com/) is convenient for an MVP—quick uploads and a familiar dashboard—while iframe playback stays simple public embeds (not DRM). [**Cloudflare Stream**](https://www.cloudflare.com/developer-platform/products/cloudflare-stream/) is the preferred long-term direction here for signed URLs, token-gated playback, and platform alignment; this repo still uses plain iframe embeds with `playbackId` until you wire signing server-side. **Both providers remain first-class:** pick per lesson via `VideoPlayer` props or the `ProtectedVideo` registry—do not standardize on a single provider in code.
+**Choosing a provider:** [**Vimeo**](https://vimeo.com/) is convenient for an MVP—quick uploads and a familiar dashboard—while iframe playback stays simple public embeds (not DRM). [**Cloudflare Stream**](https://www.cloudflare.com/developer-platform/products/cloudflare-stream/) is the preferred long-term direction here for signed URLs, token-gated playback, and platform alignment; this repo still uses plain iframe embeds with `playbackId` until you wire signing server-side.
 
-Supported **`VideoPlayer`** providers (see [`components/mdx/VideoPlayer.tsx`](components/mdx/VideoPlayer.tsx)):
+**Course registry:** Put hosted-video references in **`content/courses/<courseSlug>/videos.yaml`** (loaded on the server when rendering each lesson). Each key under `videos` is an **asset id** (same slug rules as routes: lowercase letters, digits, hyphens). Example:
 
-| Provider | Props | Notes |
+```yaml
+videos:
+  lesson-1-recording:
+    provider: vimeo
+    videoId: "123456789"
+    title: "Compounding recording"
+  lesson-2-recording:
+    provider: cloudflare
+    playbackId: "your-stream-playback-id"
+    title: "Risk and return recording"
+```
+
+**Embed in MDX** (single component — [`VideoPlayer`](components/mdx/VideoPlayer.tsx)):
+
+- **Registry:** `<VideoPlayer assetId="lesson-1-recording" />`
+- **Direct (still supported):** `<VideoPlayer provider="vimeo" videoId="76979871" title="…" />` or `provider="cloudflare" playbackId="…"`
+
+#### Upload to Vimeo and wire an asset id
+
+1. Upload or record in [Vimeo](https://vimeo.com/), then open the video.
+2. Copy the **numeric video ID** from the page URL (`vimeo.com/<videoId>`) or from **Share → Embed**.
+3. Add a block under `videos.<your-asset-id>` in **`videos.yaml`** with `provider: vimeo`, `videoId`, and optional `title` / `privacyHash` (private/unlisted embed hash → Vimeo’s `h=` parameter).
+4. In lesson MDX: `<VideoPlayer assetId="your-asset-id" />`.
+
+#### Cloudflare Stream
+
+Optional env **`NEXT_PUBLIC_CLOUDFLARE_STREAM_CUSTOMER`** sets the iframe host; otherwise embeds use `iframe.videodelivery.net`. Put `playbackId` from the Stream dashboard into **`videos.yaml`** (or pass it in direct `VideoPlayer` props).
+
+Supported fields per provider:
+
+| Provider | Fields | Notes |
 |----------|--------|--------|
-| **Vimeo** | `provider="vimeo"`, `videoId`, optional `title`, `privacyHash` | `privacyHash` maps to Vimeo’s private/unlisted `h=` parameter. Not enterprise DRM. |
-| **Cloudflare Stream** | `provider="cloudflare"`, `playbackId`, optional `title` | Optional env **`NEXT_PUBLIC_CLOUDFLARE_STREAM_CUSTOMER`** for custom iframe host; otherwise uses `iframe.videodelivery.net`. Signed URLs/tokens are not implemented in this prototype. |
+| **Vimeo** | `provider`, `videoId`, optional `title`, `privacyHash`, `poster` | Not enterprise DRM. |
+| **Cloudflare Stream** | `provider`, `playbackId`, optional `title`, `poster` | Signed URLs/tokens are not implemented in this prototype. |
 
 Optional **`poster`** is accepted for future use; iframe embeds ignore it today.
 
-**`<ProtectedVideo assetId="..." />`** maps known IDs to **either** provider’s `VideoPlayerProps` (sample course mixes Vimeo and Cloudflare). Prefer **`VideoPlayer`** with explicit props in new MDX. For the bundled **`risk-return-overview`** asset, set **`NEXT_PUBLIC_CLOUDFLARE_DEMO_PLAYBACK_ID`** or swap the lesson to an explicit `<VideoPlayer provider="cloudflare" playbackId="..." />`.
-
-In the sample **investing-basics** modules, lesson 1 embeds Vimeo via `<VideoPlayer />` directly; lesson 2 uses `<ProtectedVideo />` → Cloudflare (`playbackId` from env or the amber placeholder message); lesson 3 uses `<ProtectedVideo />` → Vimeo.
+In the sample **investing-basics** course, [`videos.yaml`](content/courses/investing-basics/videos.yaml) defines **`risk-return-overview`** and **`diversification-explainer`**; lesson 1 still uses **direct** Vimeo props so older MDX stays valid.
 
 ## Students allowlist (`config/students.yaml`)
 
@@ -126,6 +153,7 @@ Then open a course lesson (e.g. [lesson 1](http://localhost:3000/courses/investi
 ## Content layout
 
 - `content/courses/<courseSlug>/course.yaml` — course title and modules (validated at load time).
+- `content/courses/<courseSlug>/videos.yaml` — optional hosted video registry for `<VideoPlayer assetId="…" />` (validated when present).
 - `content/courses/<courseSlug>/<moduleSlug>/<lessonSlug>.mdx` — lesson MDX (must match `module.slug` and lesson `slug` from YAML).
 
 ### MDX components
@@ -135,15 +163,14 @@ These tags are wired in [`app/courses/[courseSlug]/[lessonSlug]/page.tsx`](app/c
 - `<CompoundInterestCalculator />`
 - Markdown images: `![alt](../assets/file.png)` (see **Course assets and media**)
 - `<CourseImage src="file.png" alt="..." />`
-- `<VideoPlayer provider="vimeo" videoId="..." title="..." />` or `provider="cloudflare" playbackId="..."`
-- `<ProtectedVideo assetId="..." />` (legacy; delegates to `VideoPlayer`)
+- `<VideoPlayer assetId="your-registry-id" />` or `<VideoPlayer provider="vimeo" videoId="..." title="..." />` / `provider="cloudflare" playbackId="..."`
 - `<DownloadFile assetId="..." />`
 
 ### Adding a new lesson
 
 1. Edit `content/courses/<courseSlug>/course.yaml` — under the right module `lessons` list, add `{ slug: lesson-x, title: "..." }`. Use a unique `slug` within the course.
 2. Add the file `content/courses/<courseSlug>/<moduleSlug>/<lessonSlug>.mdx` (same `moduleSlug` as in YAML and same `lessonSlug` as in the entry).
-3. Use MDX components as needed (`CompoundInterestCalculator`, `CourseImage`, `VideoPlayer`, `ProtectedVideo`, `DownloadFile`).
+3. Use MDX components as needed (`CompoundInterestCalculator`, `CourseImage`, `VideoPlayer`, `DownloadFile`).
 
 ## Scripts
 

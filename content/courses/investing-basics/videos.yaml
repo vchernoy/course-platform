@@ -1,0 +1,17 @@
+# Hosted video references for this course (Vimeo, Cloudflare Stream, etc.).
+# MDX: <VideoPlayer assetId="lesson-1-recording" />
+videos:
+  lesson-1-recording:
+    provider: vimeo
+    videoId: "76979871"
+    title: "Compounding recording"
+
+  risk-return-overview:
+    provider: vimeo
+    videoId: "76979871"
+    title: "Risk and return overview"
+
+  diversification-explainer:
+    provider: vimeo
+    videoId: "76979871"
+    title: "Diversification overview"

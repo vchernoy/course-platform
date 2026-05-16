@@ -5,10 +5,10 @@ import { notFound } from "next/navigation";
 import { CompoundInterestCalculator } from "@/components/mdx/CompoundInterestCalculator";
 import { CourseImage } from "@/components/mdx/CourseImage";
 import { DownloadFile } from "@/components/mdx/DownloadFile";
-import { ProtectedVideo } from "@/components/mdx/ProtectedVideo";
-import { VideoPlayer } from "@/components/mdx/VideoPlayer";
+import { createLessonVideoPlayer } from "@/components/mdx/VideoPlayer";
 import { LessonPager } from "@/components/course/LessonPager";
 import { rewriteLessonAssetUrls } from "@/lib/course-assets";
+import { loadCourseVideos } from "@/lib/course-videos";
 import {
   findLessonMeta,
   getLessonNeighbors,
@@ -64,6 +64,15 @@ export default async function LessonPage({ params }: Props) {
     notFound();
   }
 
+  let videos;
+  try {
+    videos = loadCourseVideos(courseSlug);
+  } catch {
+    notFound();
+  }
+
+  const VideoPlayerMdx = createLessonVideoPlayer(videos);
+
   const mdxSource = rewriteLessonAssetUrls(source, courseSlug);
 
   const { content } = await compileMDX({
@@ -86,8 +95,7 @@ export default async function LessonPage({ params }: Props) {
           className={props.className}
         />
       ),
-      VideoPlayer,
-      ProtectedVideo,
+      VideoPlayer: VideoPlayerMdx,
       DownloadFile,
     },
   });

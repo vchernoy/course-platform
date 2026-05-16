@@ -1,12 +1,10 @@
+import type { CourseVideoMap } from "@/lib/course-videos";
+
 /**
- * Hosted video embeds: pick a **provider** per usage (MDX or `ProtectedVideo` registry).
+ * Direct iframe embed props (Vimeo or Cloudflare Stream). Not DRM — see README.
  *
- * - **Vimeo** — convenient for an MVP (simple publishing, familiar tooling). Still a public iframe:
- *   not DRM; optional `privacyHash` only maps to Vimeo’s `h=` param for private/unlisted embeds.
- * - **Cloudflare Stream** — preferred long-term for this stack: signed URLs / token playback and
- *   platform fit (not wired in this repo yet — iframe uses `playbackId` only).
- *
- * Keep both code paths active; do not assume a single provider across the app.
+ * For MDX inside a lesson, the page wraps {@link createLessonVideoPlayer} so you can also pass
+ * `{ assetId }` and resolve rows from `content/courses/<slug>/videos.yaml`.
  */
 export type VideoPlayerProps =
   | {
@@ -25,6 +23,9 @@ export type VideoPlayerProps =
       poster?: string;
     };
 
+/** Props MDX may pass: registry id or full direct {@link VideoPlayerProps}. */
+export type VideoPlayerMdxProps = { assetId: string } | VideoPlayerProps;
+
 function cloudflareIframeSrc(playbackId: string): string {
   const customer = process.env.NEXT_PUBLIC_CLOUDFLARE_STREAM_CUSTOMER?.trim();
   if (customer) {
@@ -33,6 +34,9 @@ function cloudflareIframeSrc(playbackId: string): string {
   return `https://iframe.videodelivery.net/${playbackId}`;
 }
 
+/**
+ * Renders a hosted video iframe from explicit provider props (backward compatible with all existing MDX).
+ */
 export function VideoPlayer(props: VideoPlayerProps) {
   let iframeSrc: string | null = null;
 
@@ -48,10 +52,9 @@ export function VideoPlayer(props: VideoPlayerProps) {
             <figcaption className="mb-2 text-sm font-medium text-zinc-800">{props.title}</figcaption>
           ) : null}
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-            Cloudflare Stream needs a non-empty <code className="font-mono">playbackId</code>. Set it
-            on <code className="font-mono">VideoPlayer</code> in MDX, or{" "}
-            <code className="font-mono">NEXT_PUBLIC_CLOUDFLARE_DEMO_PLAYBACK_ID</code> for the sample{" "}
-            <code className="font-mono">ProtectedVideo</code> mapping.
+            Cloudflare Stream needs a non-empty <code className="font-mono">playbackId</code>. Set it in
+            MDX (<code className="font-mono">VideoPlayer</code> direct mode) or under{" "}
+            <code className="font-mono">videos.yaml</code> for that asset id.
           </div>
         </figure>
       );
@@ -82,4 +85,30 @@ export function VideoPlayer(props: VideoPlayerProps) {
       </div>
     </figure>
   );
+}
+
+/**
+ * Use as the MDX `VideoPlayer` component once per lesson render (closes over `videos.yaml` rows).
+ */
+export function createLessonVideoPlayer(videos: CourseVideoMap) {
+  return function VideoPlayerMdx(props: VideoPlayerMdxProps) {
+    const maybeAssetId = (props as { assetId?: unknown }).assetId;
+    const assetId = typeof maybeAssetId === "string" ? maybeAssetId.trim() : "";
+
+    if (assetId !== "") {
+      const row = videos[assetId];
+      if (!row) {
+        return (
+          <div className="my-8 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            Unknown video <code className="font-mono">{assetId}</code>. Add{" "}
+            <code className="font-mono">videos.{assetId}</code> in{" "}
+            <code className="font-mono">content/courses/&lt;courseSlug&gt;/videos.yaml</code>.
+          </div>
+        );
+      }
+      return <VideoPlayer {...row} />;
+    }
+
+    return <VideoPlayer {...(props as VideoPlayerProps)} />;
+  };
 }
