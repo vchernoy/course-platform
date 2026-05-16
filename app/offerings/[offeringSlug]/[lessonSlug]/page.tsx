@@ -10,6 +10,7 @@ import { CompoundInterestCalculator } from "@/components/mdx/CompoundInterestCal
 import { CourseImage } from "@/components/mdx/CourseImage";
 import { Details } from "@/components/mdx/Details";
 import { DownloadFile } from "@/components/mdx/DownloadFile";
+import { Quiz } from "@/components/mdx/Quiz";
 import { createLessonVideoPlayer } from "@/components/mdx/VideoPlayer";
 import { LessonPager } from "@/components/course/LessonPager";
 import { PortalBreadcrumbs } from "@/components/portal/PortalBreadcrumbs";
@@ -112,6 +113,7 @@ export default async function LessonPage({ params }: Props) {
       ),
       VideoPlayer: VideoPlayerMdx,
       DownloadFile,
+      Quiz,
     },
   });
 

@@ -151,6 +151,7 @@ Wired in [`app/offerings/[offeringSlug]/[lessonSlug]/page.tsx`](app/offerings/[o
 - `<CourseImage src="file.png" alt="..." />`
 - `<VideoPlayer … />`
 - `<DownloadFile assetId="..." />`
+- `<Quiz question="…" choices='["…","…"]' answer="0" explanation="…" />` — client-side multiple choice only. **`choices`** must be a **JSON array string** (single-quoted attribute is easiest): `next-mdx-remote` removes JSX attributes written as `{expression}`, so `choices={[…]}` never reaches the component. **`answer`** is a **0-based** index string or number; nothing is saved server-side.
 - Callouts: `:::tip … :::` or `:::warning[Custom title] … :::` (see **Callouts (directives)** below).
 - Collapsible blocks: `:::details[Optional title] … :::` (see **Details (collapsible)** below).
 
