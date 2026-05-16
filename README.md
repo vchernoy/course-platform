@@ -63,7 +63,7 @@ Optional:
 
 ## Dashboard
 
-[`app/dashboard/page.tsx`](app/dashboard/page.tsx) lists offerings whose slug appears under your **`students.yaml`** **`offerings`** array (requires sign-in). Each card shows title, **`format`**, optional **`description`** / date strings from **`offering.yaml`**, and **Open** (first lesson in YAML order).
+[`app/dashboard/page.tsx`](app/dashboard/page.tsx) is the signed-in student portal: a header (**Course Platform**, email, **Home**, **Sign out** via [`components/dashboard/DashboardHeader.tsx`](components/dashboard/DashboardHeader.tsx)), grouped sections (**Courses**, **Webinars**, **Workshops**—only non-empty groups; **`mini-course`** appears under Courses), and cards with format badge, title, description, dates, lesson count, **Available**, and **Open** (first lesson in YAML order). Access is still enforced only on the server via **`students.yaml`**.
 
 ## Students allowlist (`config/students.yaml`)
 
@@ -131,7 +131,7 @@ Sample **[`investing-basics-2026-05/videos.yaml`](content/offerings/investing-ba
 
 ## Content layout
 
-- **`content/offerings/<offeringSlug>/offering.yaml`** — title, **`format`**, **`modules`**, optional **`description`**, **`startDate`**, **`endDate`**, optional **`published`** (boolean), **`visibility`** (`private` \| `public` \| `unlisted`). The last two are **validated and exposed only** for future behavior (no runtime effect yet).
+- **`content/offerings/<offeringSlug>/offering.yaml`** — title, **`format`**, **`modules`**, optional **`description`**, **`startDate`**, **`endDate`**, optional **`coverImage`** (string path under the offering folder, e.g. `assets/cover.jpg`; **validated only**—reserved for future dashboard or landing-page thumbnails, no rendering yet), optional **`published`** (boolean), **`visibility`** (`private` \| `public` \| `unlisted`). **`published`** / **`visibility`** are **validated and exposed only** for future behavior (no runtime effect yet).
 - **`content/offerings/<offeringSlug>/videos.yaml`** — optional video registry for `<VideoPlayer assetId="…" />`.
 - **`content/offerings/<offeringSlug>/<moduleSlug>/<lessonSlug>.mdx`** — lesson MDX (must match YAML).
 

@@ -25,6 +25,8 @@ export type OfferingMeta = {
   published?: boolean;
   /** Reserved for future discovery/access rules; validated only. */
   visibility?: OfferingVisibility;
+  /** Path under the offering folder for a cover/thumbnail; validated only (e.g. dashboard cards later). */
+  coverImage?: string;
 };
 
 /** Alias kept so existing components can import `CourseMeta` without renaming files. */
@@ -86,6 +88,10 @@ export function validateOfferingContent(raw: unknown): OfferingMeta {
     ) {
       throw new Error(prefix(`"visibility" must be one of: private | public | unlisted`));
     }
+  }
+
+  if ("coverImage" in o && o.coverImage != null && typeof o.coverImage !== "string") {
+    throw new Error(prefix('"coverImage" must be a string when set'));
   }
 
   if (!("modules" in o)) {
@@ -184,6 +190,9 @@ export function validateOfferingContent(raw: unknown): OfferingMeta {
   }
   if (typeof o.visibility === "string" && VISIBILITIES.has(o.visibility.trim() as OfferingVisibility)) {
     out.visibility = o.visibility.trim() as OfferingVisibility;
+  }
+  if (typeof o.coverImage === "string" && o.coverImage.trim()) {
+    out.coverImage = o.coverImage.trim();
   }
 
   return out;

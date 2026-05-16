@@ -34,6 +34,29 @@ describe("validateOfferingContent", () => {
     assert.equal(o.visibility, "unlisted");
   });
 
+  it("accepts optional coverImage string", () => {
+    const o = validateOfferingContent({
+      title: "T",
+      format: "course",
+      coverImage: "assets/cover.jpg",
+      modules: minimalModules,
+    });
+    assert.equal(o.coverImage, "assets/cover.jpg");
+  });
+
+  it("rejects non-string coverImage", () => {
+    assert.throws(
+      () =>
+        validateOfferingContent({
+          title: "T",
+          format: "course",
+          coverImage: 123,
+          modules: minimalModules,
+        }),
+      /"coverImage" must be a string/
+    );
+  });
+
   it("rejects invalid format", () => {
     assert.throws(
       () =>
