@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { forbidden, notFound } from "next/navigation";
 import { CourseSidebar } from "@/components/course/CourseSidebar";
 import { DevStudentsYamlNote } from "@/components/DevStudentsYamlNote";
+import { PortalHeader } from "@/components/portal/PortalHeader";
 import { canAccessOffering, getCurrentUserEmail } from "@/lib/authz";
 import { loadOffering } from "@/lib/offerings";
 import { isSafeSlug } from "@/lib/slug";
@@ -31,12 +32,15 @@ export default async function OfferingLayout({ children, params }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 lg:flex">
-      <CourseSidebar course={offering} courseSlug={offeringSlug} />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex-1">{children}</div>
-        <DevStudentsYamlNote />
+    <>
+      <PortalHeader email={email} activeNav="offering" />
+      <div className="min-h-screen bg-zinc-50 lg:flex">
+        <CourseSidebar course={offering} courseSlug={offeringSlug} />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex-1">{children}</div>
+          <DevStudentsYamlNote />
+        </div>
       </div>
-    </div>
+    </>
   );
 }

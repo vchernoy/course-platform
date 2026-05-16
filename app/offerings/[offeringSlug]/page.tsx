@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { PortalBreadcrumbs } from "@/components/portal/PortalBreadcrumbs";
 import {
   type OfferingFormat,
   getOrderedLessons,
@@ -55,6 +56,12 @@ export default async function OfferingOverviewPage({ params }: Props) {
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-8 lg:py-12">
+      <PortalBreadcrumbs
+        items={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: offering.title },
+        ]}
+      />
       <div className="flex flex-wrap items-center gap-2">
         <span className="inline-flex rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-semibold text-zinc-700">
           {formatBadgeLabel(offering.format)}

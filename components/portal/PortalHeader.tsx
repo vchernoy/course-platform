@@ -1,8 +1,12 @@
 import Link from "next/link";
 import { DashboardSignOutButton } from "@/components/dashboard/DashboardSignOutButton";
 
-/** Retained during portal navigation rollout; prefer `@/components/portal/PortalHeader` for new wiring. */
-export function DashboardHeader({ email }: { email: string | null | undefined }) {
+type Props = {
+  email: string | null | undefined;
+  activeNav: "dashboard" | "offering";
+};
+
+export function PortalHeader({ email, activeNav }: Props) {
   return (
     <header className="border-b border-zinc-200 bg-white shadow-sm">
       <div className="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
@@ -18,12 +22,16 @@ export function DashboardHeader({ email }: { email: string | null | undefined })
           </span>
         </div>
         <nav className="flex flex-wrap items-center gap-3 sm:justify-end">
-          <Link
-            href="/"
-            className="text-sm font-medium text-zinc-700 underline-offset-4 hover:text-zinc-900 hover:underline"
-          >
-            Home
-          </Link>
+          {activeNav === "offering" ? (
+            <Link
+              href="/dashboard"
+              className="text-sm font-medium text-zinc-700 underline-offset-4 hover:text-zinc-900 hover:underline"
+            >
+              Dashboard
+            </Link>
+          ) : (
+            <span className="text-sm font-medium text-zinc-500">Dashboard</span>
+          )}
           <DashboardSignOutButton />
         </nav>
       </div>

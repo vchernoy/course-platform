@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { PortalHeader } from "@/components/portal/PortalHeader";
 import { getCurrentUserEmail } from "@/lib/authz";
 import {
   type OfferingFormat,
@@ -108,7 +108,7 @@ export default async function DashboardPage() {
 
   return (
     <>
-      <DashboardHeader email={email} />
+      <PortalHeader email={email} activeNav="dashboard" />
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
         <div className="border-b border-zinc-200 pb-8">
           <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">

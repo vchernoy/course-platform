@@ -1,6 +1,6 @@
 # Course platform
 
-Small LMS prototype: **offerings** (courses, webinars, workshops, mini-courses) live under [`content/offerings/<offeringSlug>/`](content/offerings/) as **`offering.yaml`** + MDX lessons. Rendering uses [`next-mdx-remote/rsc`](https://github.com/hashicorp/next-mdx-remote). Lesson chrome and sidebar live in [`app/offerings/[offeringSlug]/layout.tsx`](app/offerings/[offeringSlug]/layout.tsx); the private **overview** for enrolled students is [`app/offerings/[offeringSlug]/page.tsx`](app/offerings/[offeringSlug]/page.tsx). **Access requires [Clerk](https://clerk.com/) sign-in** and an email allowlist in [`config/students.yaml`](config/students.yaml).
+Small LMS prototype: **offerings** (courses, webinars, workshops, mini-courses) live under [`content/offerings/<offeringSlug>/`](content/offerings/) as **`offering.yaml`** + MDX lessons. Rendering uses [`next-mdx-remote/rsc`](https://github.com/hashicorp/next-mdx-remote). Lesson chrome, sidebar, and shared [`PortalHeader`](components/portal/PortalHeader.tsx) live in [`app/offerings/[offeringSlug]/layout.tsx`](app/offerings/[offeringSlug]/layout.tsx); overview and lesson pages add [`PortalBreadcrumbs`](components/portal/PortalBreadcrumbs.tsx). **Access requires [Clerk](https://clerk.com/) sign-in** and an email allowlist in [`config/students.yaml`](config/students.yaml).
 
 **Offering** is the generic unit (folder + YAML + lessons). The **`format`** field (`course`, `webinar`, `workshop`, `mini-course`) is metadata for dashboards and copy—the runtime treats them the same.
 
@@ -63,7 +63,7 @@ Optional:
 
 ## Dashboard
 
-[`app/dashboard/page.tsx`](app/dashboard/page.tsx) is the signed-in student portal: a header (**Course Platform**, email, **Home**, **Sign out** via [`components/dashboard/DashboardHeader.tsx`](components/dashboard/DashboardHeader.tsx)), grouped sections (**Courses**, **Webinars**, **Workshops**—only non-empty groups; **`mini-course`** appears under Courses), and cards with format badge, title, description, dates, lesson count, **Available**, and **Open** (links to **`/offerings/[offeringSlug]`** overview). Access is still enforced only on the server via **`students.yaml`**.
+[`app/dashboard/page.tsx`](app/dashboard/page.tsx) is the signed-in student portal: [`PortalHeader`](components/portal/PortalHeader.tsx) (**Course Platform**, email, **Dashboard**, **Sign out**), grouped sections (**Courses**, **Webinars**, **Workshops**—only non-empty groups; **`mini-course`** appears under Courses), and cards with format badge, title, description, dates, lesson count, **Available**, and **Open** (links to **`/offerings/[offeringSlug]`** overview). Access is still enforced only on the server via **`students.yaml`**. ([`DashboardHeader`](components/dashboard/DashboardHeader.tsx) is retained temporarily during UI consolidation.)
 
 ## Students allowlist (`config/students.yaml`)
 

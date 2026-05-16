@@ -7,6 +7,7 @@ import { CourseImage } from "@/components/mdx/CourseImage";
 import { DownloadFile } from "@/components/mdx/DownloadFile";
 import { createLessonVideoPlayer } from "@/components/mdx/VideoPlayer";
 import { LessonPager } from "@/components/course/LessonPager";
+import { PortalBreadcrumbs } from "@/components/portal/PortalBreadcrumbs";
 import { rewriteLessonAssetUrls } from "@/lib/offering-assets";
 import { loadOfferingVideos } from "@/lib/offering-videos";
 import {
@@ -104,7 +105,13 @@ export default async function LessonPage({ params }: Props) {
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-8 lg:py-12">
-      <p className="text-sm font-medium text-zinc-500">{offering.title}</p>
+      <PortalBreadcrumbs
+        items={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: offering.title, href: `/offerings/${offeringSlug}` },
+          { label: hit.title },
+        ]}
+      />
       <h1 className="mt-1 text-3xl font-bold tracking-tight text-zinc-900">
         {hit.title}
       </h1>
