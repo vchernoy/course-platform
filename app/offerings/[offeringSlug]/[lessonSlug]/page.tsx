@@ -8,6 +8,7 @@ import remarkMath from "remark-math";
 import { Callout } from "@/components/mdx/Callout";
 import { CompoundInterestCalculator } from "@/components/mdx/CompoundInterestCalculator";
 import { CourseImage } from "@/components/mdx/CourseImage";
+import { Details } from "@/components/mdx/Details";
 import { DownloadFile } from "@/components/mdx/DownloadFile";
 import { createLessonVideoPlayer } from "@/components/mdx/VideoPlayer";
 import { LessonPager } from "@/components/course/LessonPager";
@@ -100,6 +101,7 @@ export default async function LessonPage({ params }: Props) {
           className={props.className}
         />
       ),
+      Details,
       img: (props: ImgHTMLAttributes<HTMLImageElement>) => (
         <CourseImage
           courseSlug={offeringSlug}

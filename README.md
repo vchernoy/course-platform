@@ -152,6 +152,7 @@ Wired in [`app/offerings/[offeringSlug]/[lessonSlug]/page.tsx`](app/offerings/[o
 - `<VideoPlayer … />`
 - `<DownloadFile assetId="..." />`
 - Callouts: `:::tip … :::` or `:::warning[Custom title] … :::` (see **Callouts (directives)** below).
+- Collapsible blocks: `:::details[Optional title] … :::` (see **Details (collapsible)** below).
 
 Lessons are compiled with **remark-directive**, **remark-math**, and **rehype-katex** ([`app/offerings/[offeringSlug]/[lessonSlug]/page.tsx`](app/offerings/[offeringSlug]/[lessonSlug]/page.tsx)); KaTeX CSS is loaded from the root layout.
 
@@ -176,6 +177,26 @@ Wash sale rules may apply across accounts.
 ```
 
 Close each block with a line containing only `:::`. Implementation: [`lib/mdx-callouts.ts`](lib/mdx-callouts.ts) and [`components/mdx/Callout.tsx`](components/mdx/Callout.tsx).
+
+### Details (collapsible)
+
+Optional sections using native `<details>` (same directive pipeline as callouts):
+
+```markdown
+:::details[Advanced explanation]
+Long optional explanation here. Markdown and math work inside.
+:::
+```
+
+Without brackets, the summary label defaults to **Details**:
+
+```markdown
+:::details
+Extra body content.
+:::
+```
+
+Component: [`components/mdx/Details.tsx`](components/mdx/Details.tsx). Parsed alongside callouts in [`lib/mdx-callouts.ts`](lib/mdx-callouts.ts).
 
 ### Using LaTeX
 

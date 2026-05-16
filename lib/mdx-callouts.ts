@@ -55,7 +55,8 @@ function mdxJsxAttribute(name: string, value: string) {
 }
 
 /**
- * Turns `:::tip` / `:::warning[Title]` blocks into `<Callout>` MDX.
+ * Turns callout directives (`:::tip`, `:::warning[Title]`, …) into `<Callout>`,
+ * and `:::details` / `:::details[Title]` into `<Details>`.
  * Run after `remark-directive`; before `remark-math`.
  */
 export function remarkCalloutDirectives() {
@@ -64,6 +65,18 @@ export function remarkCalloutDirectives() {
       if (!parent || typeof index !== "number") {
         return;
       }
+
+      if (node.name === "details") {
+        const { title, body } = extractDirectiveTitle(node.children);
+        parent.children[index] = {
+          type: "mdxJsxFlowElement" as const,
+          name: "Details",
+          attributes: [mdxJsxAttribute("title", title ?? "Details")],
+          children: body,
+        };
+        return;
+      }
+
       if (!CALLOUT_SET.has(node.name)) {
         return;
       }
