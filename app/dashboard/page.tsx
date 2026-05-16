@@ -37,10 +37,7 @@ function formatBadgeLabel(format: OfferingFormat): string {
 function OfferingCard({ slug, offering }: { slug: string; offering: OfferingMeta }) {
   const lessons = getOrderedLessons(offering);
   const lessonCount = lessons.length;
-  const first = lessons[0];
-  const href = first
-    ? `/offerings/${slug}/${first.lessonSlug}`
-    : `/offerings/${slug}/lesson-1`;
+  const href = `/offerings/${slug}`;
 
   const dateLine = [offering.startDate, offering.endDate].filter(Boolean).join(" → ");
 

@@ -1,10 +1,10 @@
 # Course platform
 
-Small LMS prototype: **offerings** (courses, webinars, workshops, mini-courses) live under [`content/offerings/<offeringSlug>/`](content/offerings/) as **`offering.yaml`** + MDX lessons. Rendering uses [`next-mdx-remote/rsc`](https://github.com/hashicorp/next-mdx-remote). Lesson chrome lives in [`app/offerings/[offeringSlug]/layout.tsx`](app/offerings/[offeringSlug]/layout.tsx). **Access requires [Clerk](https://clerk.com/) sign-in** and an email allowlist in [`config/students.yaml`](config/students.yaml).
+Small LMS prototype: **offerings** (courses, webinars, workshops, mini-courses) live under [`content/offerings/<offeringSlug>/`](content/offerings/) as **`offering.yaml`** + MDX lessons. Rendering uses [`next-mdx-remote/rsc`](https://github.com/hashicorp/next-mdx-remote). Lesson chrome and sidebar live in [`app/offerings/[offeringSlug]/layout.tsx`](app/offerings/[offeringSlug]/layout.tsx); the private **overview** for enrolled students is [`app/offerings/[offeringSlug]/page.tsx`](app/offerings/[offeringSlug]/page.tsx). **Access requires [Clerk](https://clerk.com/) sign-in** and an email allowlist in [`config/students.yaml`](config/students.yaml).
 
 **Offering** is the generic unit (folder + YAML + lessons). The **`format`** field (`course`, `webinar`, `workshop`, `mini-course`) is metadata for dashboards and copy—the runtime treats them the same.
 
-Canonical URLs: **`/offerings/[offeringSlug]/[lessonSlug]`**. Signed-in users land on **[`/dashboard`](/dashboard)** to see offerings they can open.
+Canonical URLs: **`/offerings/[offeringSlug]`** (private overview for enrolled students) and **`/offerings/[offeringSlug]/[lessonSlug]`** (lessons). Signed-in users land on **[`/dashboard`](/dashboard)** to open an offering overview.
 
 Legacy **`/courses/investing-basics/:lesson`** redirects to **`/offerings/investing-basics-2026-05/:lesson`** (see [`next.config.ts`](next.config.ts)).
 
@@ -63,7 +63,7 @@ Optional:
 
 ## Dashboard
 
-[`app/dashboard/page.tsx`](app/dashboard/page.tsx) is the signed-in student portal: a header (**Course Platform**, email, **Home**, **Sign out** via [`components/dashboard/DashboardHeader.tsx`](components/dashboard/DashboardHeader.tsx)), grouped sections (**Courses**, **Webinars**, **Workshops**—only non-empty groups; **`mini-course`** appears under Courses), and cards with format badge, title, description, dates, lesson count, **Available**, and **Open** (first lesson in YAML order). Access is still enforced only on the server via **`students.yaml`**.
+[`app/dashboard/page.tsx`](app/dashboard/page.tsx) is the signed-in student portal: a header (**Course Platform**, email, **Home**, **Sign out** via [`components/dashboard/DashboardHeader.tsx`](components/dashboard/DashboardHeader.tsx)), grouped sections (**Courses**, **Webinars**, **Workshops**—only non-empty groups; **`mini-course`** appears under Courses), and cards with format badge, title, description, dates, lesson count, **Available**, and **Open** (links to **`/offerings/[offeringSlug]`** overview). Access is still enforced only on the server via **`students.yaml`**.
 
 ## Students allowlist (`config/students.yaml`)
 
@@ -174,7 +174,7 @@ In **`npm run dev`** only, offering pages show a footer note: **Access controlle
 
 1. Email appears under **`offerings`** in [`config/students.yaml`](config/students.yaml) (e.g. `investing-basics-2026-05`).
 2. Sign in.
-3. Open [`/dashboard`](/dashboard) or [`/offerings/investing-basics-2026-05/lesson-1`](http://localhost:3000/offerings/investing-basics-2026-05/lesson-1).
+3. Open [`/dashboard`](/dashboard) or the offering overview [`/offerings/investing-basics-2026-05`](http://localhost:3000/offerings/investing-basics-2026-05) (and a lesson such as [`lesson-1`](http://localhost:3000/offerings/investing-basics-2026-05/lesson-1) from there).
 
 **b) Unauthorized student**
 

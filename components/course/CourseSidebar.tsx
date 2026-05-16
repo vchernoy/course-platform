@@ -11,6 +11,11 @@ type Props = {
   courseSlug: string;
 };
 
+function isOfferingOverviewPath(pathname: string, offeringSlug: string): boolean {
+  const normalized = (pathname ?? "").replace(/\/+$/, "") || "/";
+  return normalized === `/offerings/${offeringSlug}`;
+}
+
 function activeLessonSlug(pathname: string, offeringSlug: string): string | null {
   const prefix = `/offerings/${offeringSlug}/`;
   if (!pathname.startsWith(prefix)) return null;
@@ -24,15 +29,36 @@ export function CourseSidebar({ course, courseSlug }: Props) {
     () => activeLessonSlug(pathname ?? "", courseSlug),
     [pathname, courseSlug]
   );
+  const overviewActive = useMemo(
+    () => isOfferingOverviewPath(pathname ?? "", courseSlug),
+    [pathname, courseSlug]
+  );
   const [open, setOpen] = useState(false);
 
   const nav = (
-    <nav className="space-y-6 px-4 py-4 lg:px-6 lg:py-8" aria-label="Course lessons">
+    <nav className="space-y-6 px-4 py-4 lg:px-6 lg:py-8" aria-label="Offering navigation">
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
           Course
         </p>
         <p className="mt-1 font-semibold text-zinc-900">{course.title}</p>
+      </div>
+      <div>
+        <ul className="space-y-0.5 border-l border-zinc-200">
+          <li>
+            <Link
+              href={`/offerings/${courseSlug}`}
+              onClick={() => setOpen(false)}
+              className={
+                overviewActive
+                  ? "-ml-px block border-l-2 border-zinc-900 py-1.5 pl-3 text-sm font-medium text-zinc-900"
+                  : "-ml-px block border-l-2 border-transparent py-1.5 pl-3 text-sm text-zinc-600 hover:border-zinc-300 hover:text-zinc-900"
+              }
+            >
+              Overview
+            </Link>
+          </li>
+        </ul>
       </div>
       {course.modules.map((mod) => (
         <div key={mod.slug}>
@@ -68,7 +94,7 @@ export function CourseSidebar({ course, courseSlug }: Props) {
   return (
     <>
       <div className="flex items-center justify-between border-b border-zinc-200 bg-white px-4 py-3 lg:hidden">
-        <span className="text-sm font-medium text-zinc-800">Lessons</span>
+        <span className="text-sm font-medium text-zinc-800">Menu</span>
         <button
           type="button"
           className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800 hover:bg-zinc-50"
