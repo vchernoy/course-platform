@@ -18,7 +18,7 @@ export default async function HomePage() {
         <h1 className="text-2xl font-semibold text-zinc-900">
           Course platform
         </h1>
-        <p className="text-zinc-600">Sign in to access courses.</p>
+        <p className="text-zinc-600">Sign in to access your offerings.</p>
         <Link
           href="/sign-in"
           className="inline-flex w-fit rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
@@ -45,10 +45,16 @@ export default async function HomePage() {
       <p className="text-lg font-medium text-zinc-900">Welcome back</p>
       <p className="text-sm text-zinc-600">{email ?? "Signed in"}</p>
       <Link
-        href="/courses/investing-basics/lesson-1"
+        href="/dashboard"
         className="inline-flex w-fit rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
       >
-        Open lesson 1
+        Dashboard
+      </Link>
+      <Link
+        href="/offerings/investing-basics-2026-05/lesson-1"
+        className="inline-flex w-fit rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50"
+      >
+        Open sample lesson
       </Link>
       <HomeSignOutButton />
     </main>

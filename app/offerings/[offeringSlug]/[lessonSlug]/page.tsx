@@ -7,50 +7,50 @@ import { CourseImage } from "@/components/mdx/CourseImage";
 import { DownloadFile } from "@/components/mdx/DownloadFile";
 import { createLessonVideoPlayer } from "@/components/mdx/VideoPlayer";
 import { LessonPager } from "@/components/course/LessonPager";
-import { rewriteLessonAssetUrls } from "@/lib/course-assets";
-import { loadCourseVideos } from "@/lib/course-videos";
+import { rewriteLessonAssetUrls } from "@/lib/offering-assets";
+import { loadOfferingVideos } from "@/lib/offering-videos";
 import {
   findLessonMeta,
   getLessonNeighbors,
-  loadCourse,
   loadLessonSource,
-} from "@/lib/courses";
+  loadOffering,
+} from "@/lib/offerings";
 import { isSafeSlug } from "@/lib/slug";
 
 type Props = {
-  params: Promise<{ courseSlug: string; lessonSlug: string }>;
+  params: Promise<{ offeringSlug: string; lessonSlug: string }>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { courseSlug, lessonSlug } = await params;
-  if (!isSafeSlug(courseSlug) || !isSafeSlug(lessonSlug)) {
+  const { offeringSlug, lessonSlug } = await params;
+  if (!isSafeSlug(offeringSlug) || !isSafeSlug(lessonSlug)) {
     return { title: "Not found" };
   }
   try {
-    const course = loadCourse(courseSlug);
-    const hit = findLessonMeta(course, lessonSlug);
+    const offering = loadOffering(offeringSlug);
+    const hit = findLessonMeta(offering, lessonSlug);
     if (!hit) return { title: "Lesson not found" };
-    return { title: `${hit.title} · ${course.title}` };
+    return { title: `${hit.title} · ${offering.title}` };
   } catch {
-    return { title: "Course not found" };
+    return { title: "Offering not found" };
   }
 }
 
 export default async function LessonPage({ params }: Props) {
-  const { courseSlug, lessonSlug } = await params;
+  const { offeringSlug, lessonSlug } = await params;
 
-  if (!isSafeSlug(courseSlug) || !isSafeSlug(lessonSlug)) {
+  if (!isSafeSlug(offeringSlug) || !isSafeSlug(lessonSlug)) {
     notFound();
   }
 
-  let course;
+  let offering;
   try {
-    course = loadCourse(courseSlug);
+    offering = loadOffering(offeringSlug);
   } catch {
     notFound();
   }
 
-  const hit = findLessonMeta(course, lessonSlug);
+  const hit = findLessonMeta(offering, lessonSlug);
   if (!hit) notFound();
 
   if (!isSafeSlug(hit.moduleSlug)) {
@@ -59,21 +59,21 @@ export default async function LessonPage({ params }: Props) {
 
   let source: string;
   try {
-    source = loadLessonSource(courseSlug, hit.moduleSlug, lessonSlug);
+    source = loadLessonSource(offeringSlug, hit.moduleSlug, lessonSlug);
   } catch {
     notFound();
   }
 
   let videos;
   try {
-    videos = loadCourseVideos(courseSlug);
+    videos = loadOfferingVideos(offeringSlug);
   } catch {
     notFound();
   }
 
   const VideoPlayerMdx = createLessonVideoPlayer(videos);
 
-  const mdxSource = rewriteLessonAssetUrls(source, courseSlug);
+  const mdxSource = rewriteLessonAssetUrls(source, offeringSlug);
 
   const { content } = await compileMDX({
     source: mdxSource,
@@ -81,7 +81,7 @@ export default async function LessonPage({ params }: Props) {
       CompoundInterestCalculator,
       CourseImage: (props: { src?: string; alt?: string; className?: string }) => (
         <CourseImage
-          courseSlug={courseSlug}
+          courseSlug={offeringSlug}
           src={props.src ?? ""}
           alt={props.alt ?? ""}
           className={props.className}
@@ -89,7 +89,7 @@ export default async function LessonPage({ params }: Props) {
       ),
       img: (props: ImgHTMLAttributes<HTMLImageElement>) => (
         <CourseImage
-          courseSlug={courseSlug}
+          courseSlug={offeringSlug}
           src={typeof props.src === "string" ? props.src : ""}
           alt={props.alt ?? ""}
           className={props.className}
@@ -100,16 +100,16 @@ export default async function LessonPage({ params }: Props) {
     },
   });
 
-  const { prev, next } = getLessonNeighbors(course, lessonSlug);
+  const { prev, next } = getLessonNeighbors(offering, lessonSlug);
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-8 lg:py-12">
-      <p className="text-sm font-medium text-zinc-500">{course.title}</p>
+      <p className="text-sm font-medium text-zinc-500">{offering.title}</p>
       <h1 className="mt-1 text-3xl font-bold tracking-tight text-zinc-900">
         {hit.title}
       </h1>
       <article className="lesson-mdx mt-10">{content}</article>
-      <LessonPager courseSlug={courseSlug} prev={prev} next={next} />
+      <LessonPager courseSlug={offeringSlug} prev={prev} next={next} />
     </main>
   );
 }

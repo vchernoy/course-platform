@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { resolveUnderAssetsRoot, safeAssetFilePath } from "../lib/course-assets";
+import { resolveUnderAssetsRoot, safeAssetFilePath } from "../lib/offering-assets";
 import { assertSafeAssetSegments, isSafeAssetSegment } from "../lib/slug";
 
 describe("isSafeAssetSegment", () => {
@@ -52,11 +52,11 @@ describe("resolveUnderAssetsRoot", () => {
 });
 
 describe("safeAssetFilePath", () => {
-  it("returns null for invalid course slug", () => {
+  it("returns null for invalid offering slug", () => {
     assert.equal(safeAssetFilePath("../bad", ["x.png"]), null);
   });
 
   it("returns null for traversal segment before filesystem check", () => {
-    assert.equal(safeAssetFilePath("investing-basics", ["..", "x"]), null);
+    assert.equal(safeAssetFilePath("investing-basics-2026-05", ["..", "x"]), null);
   });
 });

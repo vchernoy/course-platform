@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { validateVideosContent } from "../lib/course-videos";
+import { validateVideosContent } from "../lib/offering-videos";
 
 describe("validateVideosContent", () => {
   it("accepts vimeo and cloudflare entries", () => {

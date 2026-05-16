@@ -13,10 +13,10 @@ export default function Forbidden() {
     <div className="flex min-h-screen flex-col bg-zinc-50">
       <main className="mx-auto max-w-lg px-6 py-16">
         <h1 className="text-2xl font-semibold text-zinc-900">
-          You do not have access to this course.
+          You do not have access to this offering.
         </h1>
         <p className="mt-3 text-zinc-600">
-          If you believe this is a mistake, contact your course administrator.
+          If you believe this is a mistake, contact your administrator.
         </p>
         {showDevHint ? (
           <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950">

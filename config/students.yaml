@@ -1,20 +1,25 @@
 students:
   - email: vchernoy@gmail.com
-    courses:
-      - investing-basics
+    offerings:
+      - investing-basics-2026-05
+      - roth-ira-webinar-2026-04
 
   - email: student1@example.com
-    courses:
-      - investing-basics
+    offerings:
+      - investing-basics-2026-05
+      - roth-ira-webinar-2026-04
 
   - email: student2@example.com
-    courses:
-      - investing-basics
+    offerings:
+      - investing-basics-2026-05
+      - roth-ira-webinar-2026-04
 
   - email: alenatravel@gmail.com
-    courses:
-      - investing-basics
+    offerings:
+      - investing-basics-2026-05
+      - roth-ira-webinar-2026-04
   
   - email: natalya.fominykh@gmail.com
-    courses:
-      - investing-basics
+    offerings:
+      - investing-basics-2026-05
+      - roth-ira-webinar-2026-04

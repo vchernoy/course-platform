@@ -3,16 +3,16 @@ import { stat } from "fs/promises";
 import { Readable } from "node:stream";
 import { auth } from "@clerk/nextjs/server";
 import { isSafeSlug } from "@/lib/slug";
-import { canAccessCourse, getCurrentUserEmail } from "@/lib/authz";
-import { mimeForFile, safeAssetFilePath } from "@/lib/course-assets";
+import { canAccessOffering, getCurrentUserEmail } from "@/lib/authz";
+import { mimeForFile, safeAssetFilePath } from "@/lib/offering-assets";
 import { logDevWarning, logProdDiagnostic } from "@/lib/logger";
 
-type RouteCtx = { params: Promise<{ courseSlug: string; path: string[] }> };
+type RouteCtx = { params: Promise<{ offeringSlug: string; path: string[] }> };
 
 export async function GET(_req: Request, ctx: RouteCtx) {
-  const { courseSlug, path: segments } = await ctx.params;
+  const { offeringSlug, path: segments } = await ctx.params;
 
-  if (!isSafeSlug(courseSlug)) {
+  if (!isSafeSlug(offeringSlug)) {
     return new Response("Not found", { status: 404 });
   }
 
@@ -22,11 +22,11 @@ export async function GET(_req: Request, ctx: RouteCtx) {
   }
 
   const email = await getCurrentUserEmail();
-  if (!canAccessCourse(email, courseSlug)) {
+  if (!canAccessOffering(email, offeringSlug)) {
     return new Response("Forbidden", { status: 403 });
   }
 
-  const filePath = safeAssetFilePath(courseSlug, segments);
+  const filePath = safeAssetFilePath(offeringSlug, segments);
   if (!filePath) {
     return new Response("Not found", { status: 404 });
   }
@@ -38,8 +38,6 @@ export async function GET(_req: Request, ctx: RouteCtx) {
     }
 
     const nodeStream = createReadStream(filePath);
-    // Node's stream/web ReadableStream differs from the DOM BodyInit type in TS;
-    // runtime behavior for streaming file bodies is correct.
     const webStream = Readable.toWeb(nodeStream) as unknown as BodyInit;
 
     return new Response(webStream, {
@@ -51,8 +49,8 @@ export async function GET(_req: Request, ctx: RouteCtx) {
       },
     });
   } catch (err) {
-    logDevWarning("course-assets:get", err);
-    logProdDiagnostic("course-assets", "stream_failed");
+    logDevWarning("offering-assets:get", err);
+    logProdDiagnostic("offering-assets", "stream_failed");
     return new Response("Not found", { status: 404 });
   }
 }

@@ -1,5 +1,5 @@
 import { currentUser } from "@clerk/nextjs/server";
-import { emailHasCourseAccess, normalizeEmail } from "@/lib/students";
+import { emailHasOfferingAccess, normalizeEmail } from "@/lib/students";
 
 /**
  * Primary Clerk email used for allowlist matching.
@@ -20,10 +20,18 @@ export async function getCurrentUserEmail(): Promise<string | undefined> {
 }
 
 /** Authorize against config/students.yaml (server-side file read). */
-export function canAccessCourse(
+export function canAccessOffering(
   email: string | undefined,
-  courseSlug: string
+  offeringSlug: string
 ): boolean {
   if (!email) return false;
-  return emailHasCourseAccess(email, courseSlug);
+  return emailHasOfferingAccess(email, offeringSlug);
+}
+
+/** @deprecated use canAccessOffering — same behavior */
+export function canAccessCourse(
+  email: string | undefined,
+  slug: string
+): boolean {
+  return canAccessOffering(email, slug);
 }

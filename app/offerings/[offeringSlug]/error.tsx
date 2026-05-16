@@ -1,6 +1,6 @@
 "use client";
 
-export default function CourseLessonError({
+export default function OfferingLessonError({
   error,
   reset,
 }: {

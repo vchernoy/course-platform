@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { LessonNavItem } from "@/lib/courses";
+import type { LessonNavItem } from "@/lib/offerings";
 
 type Props = {
   courseSlug: string;
@@ -16,7 +16,7 @@ export function LessonPager({ courseSlug, prev, next }: Props) {
       <div className="min-h-[3rem] flex-1">
         {prev ? (
           <Link
-            href={`/courses/${courseSlug}/${prev.lessonSlug}`}
+            href={`/offerings/${courseSlug}/${prev.lessonSlug}`}
             className="group inline-flex flex-col rounded-lg border border-transparent px-0 py-1 hover:border-zinc-200 hover:bg-white sm:px-3 sm:py-2"
           >
             <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">
@@ -33,7 +33,7 @@ export function LessonPager({ courseSlug, prev, next }: Props) {
       <div className="min-h-[3rem] flex-1 text-right">
         {next ? (
           <Link
-            href={`/courses/${courseSlug}/${next.lessonSlug}`}
+            href={`/offerings/${courseSlug}/${next.lessonSlug}`}
             className="group inline-flex flex-col items-end rounded-lg border border-transparent px-0 py-1 hover:border-zinc-200 hover:bg-white sm:px-3 sm:py-2"
           >
             <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">

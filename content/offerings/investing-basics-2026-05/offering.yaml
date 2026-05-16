@@ -1,0 +1,17 @@
+title: "Investing basics — May 2026"
+format: course
+description: "Introductory investing concepts with calculators and practice placeholders."
+startDate: "2026-05-01"
+endDate: "2026-06-30"
+published: true
+visibility: private
+modules:
+  - slug: module-1
+    title: Core concepts
+    lessons:
+      - slug: lesson-1
+        title: Compounding
+      - slug: lesson-2
+        title: Risk and return
+      - slug: lesson-3
+        title: Diversification

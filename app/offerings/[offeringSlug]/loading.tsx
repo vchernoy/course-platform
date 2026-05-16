@@ -1,4 +1,4 @@
-export default function CourseShellLoading() {
+export default function OfferingShellLoading() {
   return (
     <div className="min-h-screen animate-pulse bg-zinc-50 lg:flex">
       <aside className="hidden border-r border-zinc-200 bg-white lg:block lg:min-h-screen lg:w-64 lg:flex-shrink-0">

@@ -1,10 +1,10 @@
-import type { CourseVideoMap } from "@/lib/course-videos";
+import type { CourseVideoMap } from "@/lib/offering-videos";
 
 /**
  * Direct iframe embed props (Vimeo or Cloudflare Stream). Not DRM — see README.
  *
  * For MDX inside a lesson, the page wraps {@link createLessonVideoPlayer} so you can also pass
- * `{ assetId }` and resolve rows from `content/courses/<slug>/videos.yaml`.
+ * `{ assetId }` and resolve rows from `content/offerings/<slug>/videos.yaml`.
  */
 export type VideoPlayerProps =
   | {
@@ -102,7 +102,7 @@ export function createLessonVideoPlayer(videos: CourseVideoMap) {
           <div className="my-8 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
             Unknown video <code className="font-mono">{assetId}</code>. Add{" "}
             <code className="font-mono">videos.{assetId}</code> in{" "}
-            <code className="font-mono">content/courses/&lt;courseSlug&gt;/videos.yaml</code>.
+            <code className="font-mono">content/offerings/&lt;slug&gt;/videos.yaml</code>.
           </div>
         );
       }

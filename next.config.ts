@@ -11,6 +11,15 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      {
+        source: "/courses/investing-basics/:lesson",
+        destination: "/offerings/investing-basics-2026-05/:lesson",
+        permanent: false,
+      },
+    ];
+  },
   async headers() {
     return [
       {

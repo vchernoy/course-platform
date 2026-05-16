@@ -17,7 +17,7 @@ function resolvedSrc(courseSlug: string, src: string): string {
     .map((seg) => encodeURIComponent(seg))
     .join("/");
 
-  return `/api/course-assets/${courseSlug}/${encoded}`;
+  return `/api/offering-assets/${courseSlug}/${encoded}`;
 }
 
 export function CourseImage({ courseSlug, src, alt, className }: Props) {

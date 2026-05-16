@@ -1,4 +1,4 @@
-# Hosted video references for this course (Vimeo, Cloudflare Stream, etc.).
+# Hosted video references (see README).
 # MDX: <VideoPlayer assetId="lesson-1-recording" />
 videos:
   lesson-1-recording:

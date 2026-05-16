@@ -1,0 +1,13 @@
+title: "Roth IRA webinar — April 2026"
+format: webinar
+description: "Short webinar-style offering (single lesson placeholder)."
+startDate: "2026-04-15"
+endDate: "2026-04-15"
+published: true
+visibility: public
+modules:
+  - slug: module-1
+    title: Session
+    lessons:
+      - slug: lesson-1
+        title: Recording

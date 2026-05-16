@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
-import type { CourseMeta } from "@/lib/courses";
+import type { CourseMeta } from "@/lib/offerings";
 import { CourseUserMenu } from "@/components/course/CourseUserMenu";
 
 type Props = {
@@ -11,8 +11,8 @@ type Props = {
   courseSlug: string;
 };
 
-function activeLessonSlug(pathname: string, courseSlug: string): string | null {
-  const prefix = `/courses/${courseSlug}/`;
+function activeLessonSlug(pathname: string, offeringSlug: string): string | null {
+  const prefix = `/offerings/${offeringSlug}/`;
   if (!pathname.startsWith(prefix)) return null;
   const rest = pathname.slice(prefix.length).split("/")[0];
   return rest || null;
@@ -41,7 +41,7 @@ export function CourseSidebar({ course, courseSlug }: Props) {
           </p>
           <ul className="space-y-0.5 border-l border-zinc-200">
             {mod.lessons.map((les) => {
-              const href = `/courses/${courseSlug}/${les.slug}`;
+              const href = `/offerings/${courseSlug}/${les.slug}`;
               const active = current === les.slug;
               return (
                 <li key={les.slug}>

@@ -2,23 +2,19 @@ import fs from "fs";
 import path from "path";
 import { assertSafeAssetSegments, assertSafeSlug, isSafeSlug } from "@/lib/slug";
 
-const CONTENT = path.join(process.cwd(), "content", "courses");
+const CONTENT = path.join(process.cwd(), "content", "offerings");
 
-export function courseAssetsDir(courseSlug: string): string {
-  return path.join(CONTENT, courseSlug, "assets");
+export function offeringAssetsDir(offeringSlug: string): string {
+  return path.join(CONTENT, offeringSlug, "assets");
 }
 
-/** Rewrite markdown images so ../assets/foo resolves under this course. */
-export function rewriteLessonAssetUrls(source: string, courseSlug: string): string {
-  if (!isSafeSlug(courseSlug)) return source;
-  const base = `](/api/course-assets/${courseSlug}/`;
+/** Rewrite markdown images so ../assets/foo resolves under this offering. */
+export function rewriteLessonAssetUrls(source: string, offeringSlug: string): string {
+  if (!isSafeSlug(offeringSlug)) return source;
+  const base = `](/api/offering-assets/${offeringSlug}/`;
   return source.replace(/\]\(\.\.\/assets\//g, base);
 }
 
-/**
- * Resolve segments under an absolute root directory (must end with proper separator check).
- * Exported for unit tests of traversal behavior.
- */
 export function resolveUnderAssetsRoot(rootDir: string, segments: string[]): string | null {
   if (segments.length === 0) return null;
   const resolved = path.normalize(path.join(rootDir, ...segments));
@@ -27,15 +23,14 @@ export function resolveUnderAssetsRoot(rootDir: string, segments: string[]): str
   return resolved;
 }
 
-/** Join segments under assets; returns null if traversal, invalid slug/segments, or not a file. */
-export function safeAssetFilePath(courseSlug: string, segments: string[]): string | null {
+export function safeAssetFilePath(offeringSlug: string, segments: string[]): string | null {
   try {
-    assertSafeSlug("courseSlug", courseSlug);
+    assertSafeSlug("offeringSlug", offeringSlug);
     assertSafeAssetSegments(segments);
   } catch {
     return null;
   }
-  const root = courseAssetsDir(courseSlug);
+  const root = offeringAssetsDir(offeringSlug);
   const resolved = resolveUnderAssetsRoot(root, segments);
   if (!resolved) return null;
   if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) return null;

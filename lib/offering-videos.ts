@@ -3,10 +3,10 @@ import path from "path";
 import yaml from "yaml";
 import { assertSafeSlug, isSafeSlug } from "@/lib/slug";
 
-const CONTENT_ROOT = path.join(process.cwd(), "content", "courses");
+const CONTENT_ROOT = path.join(process.cwd(), "content", "offerings");
 
-/** One row in `videos.yaml` — matches {@link VideoPlayer} direct props (keep in sync manually). */
-export type CourseVideoEntry =
+/** Row shape matches {@link VideoPlayer} direct props (keep in sync manually). */
+export type OfferingVideoEntry =
   | {
       provider: "vimeo";
       videoId: string;
@@ -21,13 +21,16 @@ export type CourseVideoEntry =
       poster?: string;
     };
 
-export type CourseVideoMap = Record<string, CourseVideoEntry>;
+/** @deprecated use OfferingVideoMap — alias for existing imports */
+export type CourseVideoEntry = OfferingVideoEntry;
+export type OfferingVideoMap = Record<string, OfferingVideoEntry>;
+export type CourseVideoMap = OfferingVideoMap;
 
 function prefix(msg: string) {
   return `videos.yaml: ${msg}`;
 }
 
-function parseOneEntry(assetId: string, raw: unknown): CourseVideoEntry {
+function parseOneEntry(assetId: string, raw: unknown): OfferingVideoEntry {
   if (raw === null || typeof raw !== "object") {
     throw new Error(prefix(`videos["${assetId}"] must be an object`));
   }
@@ -38,7 +41,7 @@ function parseOneEntry(assetId: string, raw: unknown): CourseVideoEntry {
     if (typeof o.videoId !== "string" || !o.videoId.trim()) {
       throw new Error(prefix(`videos["${assetId}"].videoId must be a non-empty string`));
     }
-    const row: CourseVideoEntry = {
+    const row: OfferingVideoEntry = {
       provider: "vimeo",
       videoId: o.videoId.trim(),
     };
@@ -54,7 +57,7 @@ function parseOneEntry(assetId: string, raw: unknown): CourseVideoEntry {
     if (typeof o.playbackId !== "string") {
       throw new Error(prefix(`videos["${assetId}"].playbackId must be a string`));
     }
-    const row: CourseVideoEntry = {
+    const row: OfferingVideoEntry = {
       provider: "cloudflare",
       playbackId: o.playbackId,
     };
@@ -68,8 +71,7 @@ function parseOneEntry(assetId: string, raw: unknown): CourseVideoEntry {
   );
 }
 
-/** Validates parsed YAML from `videos.yaml`. */
-export function validateVideosContent(raw: unknown): CourseVideoMap {
+export function validateVideosContent(raw: unknown): OfferingVideoMap {
   if (raw === null || typeof raw !== "object") {
     throw new Error(prefix("root must be a mapping (object)"));
   }
@@ -84,7 +86,7 @@ export function validateVideosContent(raw: unknown): CourseVideoMap {
   }
 
   const videosObj = videosRaw as Record<string, unknown>;
-  const out: CourseVideoMap = {};
+  const out: OfferingVideoMap = {};
 
   for (const assetId of Object.keys(videosObj)) {
     if (!isSafeSlug(assetId)) {
@@ -96,13 +98,9 @@ export function validateVideosContent(raw: unknown): CourseVideoMap {
   return out;
 }
 
-/**
- * Load `content/courses/<courseSlug>/videos.yaml`.
- * Missing file → empty map. Invalid YAML/shape → throws (caller should treat as notFound).
- */
-export function loadCourseVideos(courseSlug: string): CourseVideoMap {
-  assertSafeSlug("courseSlug", courseSlug);
-  const filePath = path.join(CONTENT_ROOT, courseSlug, "videos.yaml");
+export function loadOfferingVideos(offeringSlug: string): OfferingVideoMap {
+  assertSafeSlug("offeringSlug", offeringSlug);
+  const filePath = path.join(CONTENT_ROOT, offeringSlug, "videos.yaml");
   if (!fs.existsSync(filePath)) {
     return {};
   }
