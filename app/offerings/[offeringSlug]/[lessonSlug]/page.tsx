@@ -3,7 +3,9 @@ import type { Metadata } from "next";
 import type { ImgHTMLAttributes } from "react";
 import { notFound } from "next/navigation";
 import rehypeKatex from "rehype-katex";
+import remarkDirective from "remark-directive";
 import remarkMath from "remark-math";
+import { Callout } from "@/components/mdx/Callout";
 import { CompoundInterestCalculator } from "@/components/mdx/CompoundInterestCalculator";
 import { CourseImage } from "@/components/mdx/CourseImage";
 import { DownloadFile } from "@/components/mdx/DownloadFile";
@@ -11,6 +13,7 @@ import { createLessonVideoPlayer } from "@/components/mdx/VideoPlayer";
 import { LessonPager } from "@/components/course/LessonPager";
 import { PortalBreadcrumbs } from "@/components/portal/PortalBreadcrumbs";
 import { rewriteLessonAssetUrls } from "@/lib/offering-assets";
+import { remarkCalloutDirectives } from "@/lib/mdx-callouts";
 import { loadOfferingVideos } from "@/lib/offering-videos";
 import {
   findLessonMeta,
@@ -82,11 +85,12 @@ export default async function LessonPage({ params }: Props) {
     source: mdxSource,
     options: {
       mdxOptions: {
-        remarkPlugins: [remarkMath],
+        remarkPlugins: [remarkDirective, remarkCalloutDirectives, remarkMath],
         rehypePlugins: [rehypeKatex],
       },
     },
     components: {
+      Callout,
       CompoundInterestCalculator,
       CourseImage: (props: { src?: string; alt?: string; className?: string }) => (
         <CourseImage

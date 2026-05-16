@@ -151,8 +151,31 @@ Wired in [`app/offerings/[offeringSlug]/[lessonSlug]/page.tsx`](app/offerings/[o
 - `<CourseImage src="file.png" alt="..." />`
 - `<VideoPlayer … />`
 - `<DownloadFile assetId="..." />`
+- Callouts: `:::tip … :::` or `:::warning[Custom title] … :::` (see **Callouts (directives)** below).
 
-Lessons are compiled with **remark-math** and **rehype-katex** ([`app/offerings/[offeringSlug]/[lessonSlug]/page.tsx`](app/offerings/[offeringSlug]/[lessonSlug]/page.tsx)); KaTeX CSS is loaded from the root layout.
+Lessons are compiled with **remark-directive**, **remark-math**, and **rehype-katex** ([`app/offerings/[offeringSlug]/[lessonSlug]/page.tsx`](app/offerings/[offeringSlug]/[lessonSlug]/page.tsx)); KaTeX CSS is loaded from the root layout.
+
+### Callouts (directives)
+
+Use **container directives** with supported names: **`note`**, **`tip`**, **`warning`**, **`danger`**, **`important`**, **`exercise`**.
+
+Plain callout (heading defaults to the type, e.g. “Tip”):
+
+```markdown
+:::tip
+Start early — time matters more than timing.
+:::
+```
+
+Optional **title** in brackets (shown instead of the default label):
+
+```markdown
+:::warning[Tax warning]
+Wash sale rules may apply across accounts.
+:::
+```
+
+Close each block with a line containing only `:::`. Implementation: [`lib/mdx-callouts.ts`](lib/mdx-callouts.ts) and [`components/mdx/Callout.tsx`](components/mdx/Callout.tsx).
 
 ### Using LaTeX
 
