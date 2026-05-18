@@ -15,12 +15,14 @@ import { CourseImage } from "@/components/mdx/CourseImage";
 import { Details } from "@/components/mdx/Details";
 import { DownloadFile } from "@/components/mdx/DownloadFile";
 import { createMdxAnchor } from "@/components/mdx/MdxAnchor";
+import { createOfferingResourceLink } from "@/components/mdx/ResourceLink";
 import { Quiz } from "@/components/mdx/Quiz";
 import { createLessonVideoPlayer } from "@/components/mdx/VideoPlayer";
 import { LessonPager } from "@/components/course/LessonPager";
 import { PortalBreadcrumbs } from "@/components/portal/PortalBreadcrumbs";
 import { rewriteLessonAssetUrls } from "@/lib/offering-assets";
 import { remarkCalloutDirectives } from "@/lib/mdx-callouts";
+import { loadOfferingResources } from "@/lib/offering-resources";
 import { loadOfferingVideos } from "@/lib/offering-videos";
 import {
   findLessonMeta,
@@ -84,7 +86,15 @@ export default async function LessonPage({ params }: Props) {
     notFound();
   }
 
+  let resources;
+  try {
+    resources = loadOfferingResources(offeringSlug);
+  } catch {
+    notFound();
+  }
+
   const VideoPlayerMdx = createLessonVideoPlayer(videos);
+  const ResourceLinkMdx = createOfferingResourceLink(resources, offeringSlug);
 
   const mdxSource = rewriteLessonAssetUrls(source, offeringSlug);
 
@@ -134,6 +144,7 @@ export default async function LessonPage({ params }: Props) {
         />
       ),
       VideoPlayer: VideoPlayerMdx,
+      ResourceLink: ResourceLinkMdx,
       DownloadFile,
       Quiz,
       a: LessonMdxAnchor,

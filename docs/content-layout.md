@@ -23,6 +23,17 @@ Optional registry for `<VideoPlayer assetId="..." />`. Keys are asset ids (slug-
 
 See [MDX authoring](./mdx-authoring.md) for embed patterns and env vars.
 
+## `resources.yaml`
+
+Path: `content/offerings/<offeringSlug>/resources.yaml`
+
+Optional registry for `<ResourceLink assetId="..." />`. Keys are asset ids (same slug-like rules as `videos.yaml`). Each entry has **`type`**: `local` \| `external`.
+
+- **`local`** — **`label`**, **`path`**: relative path under `assets/` using `/` separators. Each path segment must satisfy **[`isSafeAssetSegment`](../lib/slug.ts)** (letters, digits, `.`, `_`, `-`; not [`isSafeSlug`](../lib/slug.ts)). Typical filenames such as `worksheet-1.pdf`, `chart-v1.png`, and `roth_worksheet.pdf` are valid segments.
+- **`external`** — **`label`**, **`url`** (`http:` or `https:` only), optional **`warning`** shown below the link.
+
+Validated by [`lib/offering-resources.ts`](../lib/offering-resources.ts). Missing file on disk for a local entry surfaces an amber helper in the lesson (same spirit as unknown `assetId`).
+
 ## `assets/`
 
 Path: `content/offerings/<offeringSlug>/assets/`

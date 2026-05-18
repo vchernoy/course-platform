@@ -1,0 +1,10 @@
+resources:
+  worksheet-1:
+    type: local
+    label: Practice worksheet (PDF)
+    path: worksheets/roth_worksheet.pdf
+  sec-edgar:
+    type: external
+    label: SEC EDGAR search
+    url: https://www.sec.gov/edgar/search-and-access
+    warning: External government site; policies and URLs may change.

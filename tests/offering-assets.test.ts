@@ -16,6 +16,9 @@ describe("isSafeAssetSegment", () => {
   it("allows typical filenames", () => {
     assert.equal(isSafeAssetSegment("chart.png"), true);
     assert.equal(isSafeAssetSegment("doc-v2.pdf"), true);
+    assert.equal(isSafeAssetSegment("worksheet-1.pdf"), true);
+    assert.equal(isSafeAssetSegment("chart-v1.png"), true);
+    assert.equal(isSafeAssetSegment("roth_worksheet.pdf"), true);
   });
 });
 

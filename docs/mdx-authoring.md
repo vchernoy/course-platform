@@ -99,6 +99,7 @@ The remote MDX pipeline removes JSX attributes whose values are JavaScript expre
 | `![alt](../assets/file.png)` | Rewritten to authenticated asset URL |
 | `<CourseImage src="..." alt="..." />` | Wrapper resolving offering-relative paths |
 | `<VideoPlayer … />` | Vimeo / Cloudflare iframe embed |
+| `<ResourceLink assetId="..." />` | Link from `resources.yaml` — local file via asset API or external `https` URL |
 | `<DownloadFile assetId="..." />` | Signed-offering file delivery hook |
 | `<Quiz … />` | Client-only MCQ; see below |
 | Markdown `[text](url)` | `<a>` via [`MdxAnchor`](../components/mdx/MdxAnchor.tsx); supports `lesson:` / `offering:` pseudo-URLs |
@@ -132,6 +133,14 @@ No server persistence: state resets on navigation.
 Optional env **`NEXT_PUBLIC_CLOUDFLARE_STREAM_CUSTOMER`** overrides default iframe host; otherwise defaults apply per [`VideoPlayer`](../components/mdx/VideoPlayer.tsx).
 
 Provider notes: Vimeo suits simple iframe embeds; Cloudflare Stream supports richer token patterns later — current code uses plain iframe URLs until signing is implemented server-side.
+
+## ResourceLink
+
+- **Registry:** `<ResourceLink assetId="worksheet-1" />` — row defined in `resources.yaml` beside `videos.yaml`.
+- **Local** (`type: local`): `path` is relative to `assets/`; each slash-separated segment must pass [`isSafeAssetSegment`](../lib/slug.ts) (filenames may include `_` and `.`; not limited to slug-only characters).
+- **External** (`type: external`): `url` must be `http:` or `https:`; optional `warning` text appears under the link.
+
+Unknown ids or missing files (local) render an amber notice in the lesson.
 
 ## CourseImage and markdown images
 
