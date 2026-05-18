@@ -17,6 +17,24 @@
     @apply mt-6 mb-2 text-lg font-semibold text-zinc-900;
   }
 
+  /* Body prose links (scoped to lesson article only) */
+  .lesson-mdx a {
+    color: #2563eb;
+    text-decoration-line: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+  }
+
+  .lesson-mdx a:hover {
+    color: #1d4ed8;
+  }
+
+  .lesson-mdx a:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
   /* Permalink from rehype-autolink-headings (h2/h3 only); icon lives in .icon-link */
   .lesson-mdx h2:hover .heading-permalink,
   .lesson-mdx h3:hover .heading-permalink {
@@ -24,7 +42,22 @@
   }
 
   .lesson-mdx .heading-permalink {
-    @apply mr-1 inline-block align-middle opacity-0 text-zinc-400 no-underline transition-opacity;
+    @apply mr-1 inline-block align-middle opacity-0 transition-opacity;
+    color: rgb(161 161 170); /* zinc-400 — override prose link blue */
+    text-decoration-line: none;
+    text-underline-offset: 0;
+    text-decoration-thickness: 0;
+  }
+
+  .lesson-mdx .heading-permalink:hover {
+    color: rgb(113 113 122); /* zinc-500 */
+  }
+
+  .lesson-mdx .heading-permalink:focus-visible {
+    outline: 2px solid rgb(161 161 170);
+    outline-offset: 2px;
+    border-radius: 2px;
+    opacity: 1;
   }
 
   .lesson-mdx .heading-permalink .icon-link {
