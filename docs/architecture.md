@@ -2,6 +2,51 @@
 
 Technical overview of the course platform: content model, routing, rendering, and trust boundaries. Related: [Auth and visibility](./auth-and-visibility.md), [MDX authoring](./mdx-authoring.md), [Content layout](./content-layout.md).
 
+## Diagrams
+
+### Public request flow
+
+```mermaid
+flowchart LR
+  browser --> routeP["/p/slug"]
+  routeP --> yamlRead["offering.yaml"]
+  yamlRead --> landing["Landing page"]
+```
+
+### Private lesson flow
+
+```mermaid
+flowchart LR
+  browser --> clerkAuth["Clerk auth"]
+  clerkAuth --> mw["Middleware"]
+  mw --> layout["Offering layout"]
+  layout --> compile["MDX compile"]
+  compile --> render["React render"]
+```
+
+### Asset flow
+
+```mermaid
+flowchart LR
+  mdxImg["MDX image"]
+  mdxImg --> api["Asset API"]
+  api --> authz["Authz"]
+  authz --> fs["Filesystem asset"]
+```
+
+### Content structure
+
+```mermaid
+flowchart TB
+  subgraph offeringDir ["content/offerings/slug/"]
+    yamlFile["offering.yaml"]
+    videosFile["videos.yaml"]
+    assetsDir["assets/"]
+    moduleDirs["module-*/"]
+  end
+  moduleDirs --> lessonMdx["lesson.mdx"]
+```
+
 ## Offerings
 
 An **offering** is a directory under `content/offerings/<offeringSlug>/` containing:
