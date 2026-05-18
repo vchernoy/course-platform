@@ -14,23 +14,23 @@ Configured in [`app/offerings/[offeringSlug]/[lessonSlug]/page.tsx`](../app/offe
 - **`next-mdx-remote/rsc`** — `compileMDX`, default **`blockJS: true`**
 - **remark-directive** + custom remark step for callouts/details ([`lib/mdx-callouts.ts`](../lib/mdx-callouts.ts))
 - **remark-math** / **rehype-katex** for LaTeX
-- **rehype-slug** — stable `id` on headings (including MDX `#` → `h1`) so URLs like `/offerings/.../lesson#section-id` work
-- **rehype-autolink-headings** — hover permalink link prepended only on **`h2`** and **`h3`** (`h1` keeps id without visible permalink glyph)
+- **rehype-slug** — assigns heading ids (see [Heading anchors](#heading-anchors))
+- **rehype-autolink-headings** — hover permalink on h2/h3 only (see [Heading anchors](#heading-anchors))
 
-Markdown links render through [`components/mdx/MdxAnchor.tsx`](../components/mdx/MdxAnchor.tsx); normal URLs are unchanged.
+## Heading anchors
 
-### Heading anchors
+Slug ids come from **rehype-slug**; permalink glyphs come from **rehype-autolink-headings** on **`h2`** and **`h3`** only. Styling: `.lesson-mdx .heading-permalink` in [`app/globals.css`](../app/globals.css).
 
-| Heading | `id` from slug | Permalink icon |
-|---------|----------------|----------------|
-| MDX `# ...` → `h1` | Yes | No |
-| `##`, `###` → `h2`, `h3` | Yes | Yes (hidden until hover) |
+| Heading | id from slug | Permalink icon |
+|---------|--------------|----------------|
+| MDX `# ...` → h1 | Yes | No |
+| MDX `##` / `###` → h2, h3 | Yes | Yes (shown on hover) |
 
-Styling: `.lesson-mdx .heading-permalink` in [`app/globals.css`](../app/globals.css).
+## Internal pseudo-links (`lesson:`, `offering:`)
 
-### Internal pseudo-links (`lesson:`, `offering:`)
+Markdown links render through [`components/mdx/MdxAnchor.tsx`](../components/mdx/MdxAnchor.tsx). Normal `http(s):`, `mailto:`, and plain `#fragment` URLs are unchanged.
 
-Use Markdown links with special href schemes (resolved at render time; **no** `next/link` required):
+Special href schemes (resolved at render time; no `next/link` required):
 
 | Pattern | Resolves to |
 |---------|-------------|
@@ -48,7 +48,7 @@ Use Markdown links with special href schemes (resolved at render time; **no** `n
 
 Resolver: [`lib/mdx-internal-links.ts`](../lib/mdx-internal-links.ts). Does not bypass Clerk or `students.yaml`; targets are ordinary internal URLs.
 
-### Expression attributes
+## Expression attributes
 
 The remote MDX pipeline removes JSX attributes whose values are JavaScript expressions (security/default). Therefore patterns like `choices={[ "a", "b" ]}` or `answer={0}` are **stripped** before components receive props. Use **string literals** where needed (e.g. JSON in a single-quoted attribute for `Quiz`).
 
