@@ -8,6 +8,9 @@ export function isSafeHeadingFragment(fragment: string): boolean {
   return SAFE_HEADING_FRAGMENT_RE.test(fragment);
 }
 
+/** Same rules as URL hash fragments; use for `<Anchor id>` / `<AnchorBlock id>`. */
+export const isSafeManualAnchorId = isSafeHeadingFragment;
+
 /**
  * Rewrites lesson:/offering: pseudo-URLs used in lesson Markdown links.
  * Optional `#fragment` is appended only when `isSafeHeadingFragment` passes.

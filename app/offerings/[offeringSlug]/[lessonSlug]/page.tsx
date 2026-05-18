@@ -7,6 +7,8 @@ import rehypeKatex from "rehype-katex";
 import rehypeSlug from "rehype-slug";
 import remarkDirective from "remark-directive";
 import remarkMath from "remark-math";
+import { Anchor } from "@/components/mdx/Anchor";
+import { AnchorBlock } from "@/components/mdx/AnchorBlock";
 import { Callout } from "@/components/mdx/Callout";
 import { CompoundInterestCalculator } from "@/components/mdx/CompoundInterestCalculator";
 import { CourseImage } from "@/components/mdx/CourseImage";
@@ -110,6 +112,8 @@ export default async function LessonPage({ params }: Props) {
       },
     },
     components: {
+      Anchor,
+      AnchorBlock,
       Callout,
       CompoundInterestCalculator,
       CourseImage: (props: { src?: string; alt?: string; className?: string }) => (

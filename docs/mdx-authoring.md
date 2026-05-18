@@ -16,6 +16,7 @@ Configured in [`app/offerings/[offeringSlug]/[lessonSlug]/page.tsx`](../app/offe
 - **remark-math** / **rehype-katex** for LaTeX
 - **rehype-slug** — assigns heading ids (see [Heading anchors](#heading-anchors))
 - **rehype-autolink-headings** — hover permalink on h2/h3 only (see [Heading anchors](#heading-anchors))
+- **`Anchor`** / **`AnchorBlock`** — manual fragment targets (see [Heading anchors](#heading-anchors))
 
 ## Heading anchors
 
@@ -25,6 +26,40 @@ Slug ids come from **rehype-slug**; permalink glyphs come from **rehype-autolink
 |---------|--------------|----------------|
 | MDX `# ...` → h1 | Yes | No |
 | MDX `##` / `###` → h2, h3 | Yes | Yes (shown on hover) |
+
+<!-- Dev hint: invalid `<Anchor id>` / `<AnchorBlock id>` values log a console warning in NODE_ENV=development and omit the DOM id; there is no duplicate-id detection yet. -->
+
+Manual **`Anchor`** / **`AnchorBlock`** ids must be **unique within the rendered lesson** (single HTML document including layout-provided heading ids). Do **not** reuse an **`id`** that **rehype-slug** already assigns to a heading on that page (derive slug mentally from heading text or inspect DOM). Duplicate **`id`**s produce invalid HTML and unpredictable fragment scrolling.
+
+### Manual inline anchor (`Anchor`)
+
+Inline wrapper — does not break text flow:
+
+```mdx
+The <Anchor id="five-year-rule">five-year rule</Anchor> is …
+```
+
+Props: **`id`** (string literal). Implemented in [`components/mdx/Anchor.tsx`](../components/mdx/Anchor.tsx). Same validation as URL fragments: [`isSafeManualAnchorId`](../lib/mdx-internal-links.ts).
+
+### Manual block anchor (`AnchorBlock`)
+
+Block wrapper with hover **`#`** permalink:
+
+```mdx
+<AnchorBlock id="roth-clock">
+The five-year clock starts …
+</AnchorBlock>
+```
+
+Props: **`id`** (string literal). Implemented in [`components/mdx/AnchorBlock.tsx`](../components/mdx/AnchorBlock.tsx).
+
+### Cross-lesson links to manual anchors
+
+Use **`offering:`** / **`lesson:`** pseudo-links with a **`#fragment`** that matches the manual **`id`**:
+
+```markdown
+[See five-year rule](offering:investing-basics-2026-05/lesson-1#five-year-rule)
+```
 
 ## Internal pseudo-links (`lesson:`, `offering:`)
 
@@ -63,6 +98,8 @@ The remote MDX pipeline removes JSX attributes whose values are JavaScript expre
 | `<DownloadFile assetId="..." />` | Signed-offering file delivery hook |
 | `<Quiz … />` | Client-only MCQ; see below |
 | Markdown `[text](url)` | `<a>` via [`MdxAnchor`](../components/mdx/MdxAnchor.tsx); supports `lesson:` / `offering:` pseudo-URLs |
+| `<Anchor id="…">…</Anchor>` | Manual inline fragment target ([`Anchor`](../components/mdx/Anchor.tsx)) |
+| `<AnchorBlock id="…">…</AnchorBlock>` | Manual block fragment target ([`AnchorBlock`](../components/mdx/AnchorBlock.tsx)) |
 
 Callouts and details use directive syntax (below), not raw MDX tags.
 
