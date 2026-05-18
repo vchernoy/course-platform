@@ -13,6 +13,24 @@
     @apply mt-8 mb-3 text-xl font-semibold text-zinc-900;
   }
 
+  .lesson-mdx h3 {
+    @apply mt-6 mb-2 text-lg font-semibold text-zinc-900;
+  }
+
+  /* Permalink from rehype-autolink-headings (h2/h3 only); icon lives in .icon-link */
+  .lesson-mdx h2:hover .heading-permalink,
+  .lesson-mdx h3:hover .heading-permalink {
+    @apply opacity-100;
+  }
+
+  .lesson-mdx .heading-permalink {
+    @apply mr-1 inline-block align-middle opacity-0 text-zinc-400 no-underline transition-opacity;
+  }
+
+  .lesson-mdx .heading-permalink .icon-link {
+    @apply text-[0.85em] font-normal;
+  }
+
   .lesson-mdx p {
     @apply mb-4;
   }

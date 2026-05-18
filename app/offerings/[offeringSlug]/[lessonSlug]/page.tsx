@@ -2,7 +2,9 @@ import { compileMDX } from "next-mdx-remote/rsc";
 import type { Metadata } from "next";
 import type { ImgHTMLAttributes } from "react";
 import { notFound } from "next/navigation";
+import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypeKatex from "rehype-katex";
+import rehypeSlug from "rehype-slug";
 import remarkDirective from "remark-directive";
 import remarkMath from "remark-math";
 import { Callout } from "@/components/mdx/Callout";
@@ -10,6 +12,7 @@ import { CompoundInterestCalculator } from "@/components/mdx/CompoundInterestCal
 import { CourseImage } from "@/components/mdx/CourseImage";
 import { Details } from "@/components/mdx/Details";
 import { DownloadFile } from "@/components/mdx/DownloadFile";
+import { createMdxAnchor } from "@/components/mdx/MdxAnchor";
 import { Quiz } from "@/components/mdx/Quiz";
 import { createLessonVideoPlayer } from "@/components/mdx/VideoPlayer";
 import { LessonPager } from "@/components/course/LessonPager";
@@ -83,12 +86,27 @@ export default async function LessonPage({ params }: Props) {
 
   const mdxSource = rewriteLessonAssetUrls(source, offeringSlug);
 
+  const LessonMdxAnchor = createMdxAnchor(offeringSlug);
+
   const { content } = await compileMDX({
     source: mdxSource,
     options: {
       mdxOptions: {
         remarkPlugins: [remarkDirective, remarkCalloutDirectives, remarkMath],
-        rehypePlugins: [rehypeKatex],
+        rehypePlugins: [
+          rehypeKatex,
+          rehypeSlug,
+          [
+            rehypeAutolinkHeadings,
+            {
+              behavior: "prepend",
+              test: ["h2", "h3"],
+              properties: {
+                className: ["heading-permalink"],
+              },
+            },
+          ],
+        ],
       },
     },
     components: {
@@ -114,6 +132,7 @@ export default async function LessonPage({ params }: Props) {
       VideoPlayer: VideoPlayerMdx,
       DownloadFile,
       Quiz,
+      a: LessonMdxAnchor,
     },
   });
 

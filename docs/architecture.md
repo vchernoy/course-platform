@@ -71,6 +71,8 @@ See [Auth and visibility](./auth-and-visibility.md) for middleware, `visibility`
 
 - Lessons are loaded from disk as strings and compiled with [`next-mdx-remote/rsc`](https://github.com/hashicorp/next-mdx-remote) in [`app/offerings/[offeringSlug]/[lessonSlug]/page.tsx`](../app/offerings/%5BofferingSlug%5D/%5BlessonSlug%5D/page.tsx).
 - `remark-directive`, custom callout/details handling, `remark-math`, and `rehype-katex` run in the compile pipeline.
+- **rehype-slug** assigns heading `id`s; **rehype-autolink-headings** adds hover permalinks on **`h2`** and **`h3`** only (`h1` keeps `id`, no permalink chip).
+- Markdown links use [`MdxAnchor`](../components/mdx/MdxAnchor.tsx) to resolve `lesson:` / `offering:` pseudo-URLs (including optional `#fragment`); see [MDX authoring](./mdx-authoring.md).
 - KaTeX CSS is loaded from the root layout.
 
 Author-facing detail: [MDX authoring](./mdx-authoring.md).
