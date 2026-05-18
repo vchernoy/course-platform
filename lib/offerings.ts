@@ -21,9 +21,9 @@ export type OfferingMeta = {
   description?: string;
   startDate?: string;
   endDate?: string;
-  /** Reserved for future publishing workflows; validated only. */
+  /** Optional flag for future publishing workflows; not used for routing yet. */
   published?: boolean;
-  /** Reserved for future discovery/access rules; validated only. */
+  /** Access hint for public landing pages; omitted means `private`. */
   visibility?: OfferingVisibility;
   /** Path under the offering folder for a cover/thumbnail; validated only (e.g. dashboard cards later). */
   coverImage?: string;
@@ -206,6 +206,17 @@ export function loadOffering(offeringSlug: string): OfferingMeta {
   }
   const raw = yaml.parse(fs.readFileSync(offeringPath, "utf8"));
   return validateOfferingContent(raw);
+}
+
+/** Treat missing visibility as private (safest default). */
+export function effectiveOfferingVisibility(meta: OfferingMeta): OfferingVisibility {
+  return meta.visibility ?? "private";
+}
+
+/** Whether `/p/[offeringSlug]` may render a public landing page. */
+export function isPublicOfferingLanding(meta: OfferingMeta): boolean {
+  const v = effectiveOfferingVisibility(meta);
+  return v === "public" || v === "unlisted";
 }
 
 /** Subfolders of `content/offerings` that contain `offering.yaml`. */

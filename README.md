@@ -1,12 +1,10 @@
 # Course platform
 
-Small LMS prototype: **offerings** (courses, webinars, workshops, mini-courses) live under [`content/offerings/<offeringSlug>/`](content/offerings/) as **`offering.yaml`** + MDX lessons. Rendering uses [`next-mdx-remote/rsc`](https://github.com/hashicorp/next-mdx-remote). Lesson chrome, sidebar, and shared [`PortalHeader`](components/portal/PortalHeader.tsx) live in [`app/offerings/[offeringSlug]/layout.tsx`](app/offerings/[offeringSlug]/layout.tsx); overview and lesson pages add [`PortalBreadcrumbs`](components/portal/PortalBreadcrumbs.tsx). **Access requires [Clerk](https://clerk.com/) sign-in** and an email allowlist in [`config/students.yaml`](config/students.yaml).
+Small LMS prototype: **offerings** (courses, webinars, workshops, mini-courses) under [`content/offerings/<offeringSlug>/`](content/offerings/) as **`offering.yaml`** + MDX lessons, rendered with [`next-mdx-remote/rsc`](https://github.com/hashicorp/next-mdx-remote). Portal chrome uses [`PortalHeader`](components/portal/PortalHeader.tsx), [`PortalBreadcrumbs`](components/portal/PortalBreadcrumbs.tsx), and [`app/offerings/[offeringSlug]/layout.tsx`](app/offerings/[offeringSlug]/layout.tsx).
 
-**Offering** is the generic unit (folder + YAML + lessons). The **`format`** field (`course`, `webinar`, `workshop`, `mini-course`) is metadata for dashboards and copy—the runtime treats them the same.
+**URLs:** **`/p/[offeringSlug]`** — anonymous landing when **`visibility`** allows (**Visibility** below); syllabus titles from YAML only (no lesson MDX). **`/dashboard`** and **`/offerings/[offeringSlug]`** / **`/offerings/.../[lessonSlug]`** — [Clerk](https://clerk.com/) + [`config/students.yaml`](config/students.yaml). Home links enrolled users to **`/dashboard`**. **`format`** is dashboard/copy metadata only.
 
-Canonical URLs: **`/offerings/[offeringSlug]`** (private overview for enrolled students) and **`/offerings/[offeringSlug]/[lessonSlug]`** (lessons). Signed-in users land on **[`/dashboard`](/dashboard)** to open an offering overview.
-
-Legacy **`/courses/investing-basics/:lesson`** redirects to **`/offerings/investing-basics-2026-05/:lesson`** (see [`next.config.ts`](next.config.ts)).
+Legacy **`/courses/investing-basics/:lesson`** → **`/offerings/investing-basics-2026-05/:lesson`** ([`next.config.ts`](next.config.ts)).
 
 ## Prerequisites
 
@@ -35,6 +33,19 @@ Legacy **`/courses/investing-basics/:lesson`** redirects to **`/offerings/invest
 7. **Create test users** in Clerk (**Users → Create user**) with emails that match [`config/students.yaml`](config/students.yaml) for authorized testing, and another email **not** listed there for unauthorized testing.
 
 Restart `npm run dev` after changing `.env.local`.
+
+## Visibility (`offering.yaml`)
+
+[`middleware.ts`](middleware.ts) runs Clerk **`auth.protect()`** on **`/offerings/*`**, **`/dashboard/*`**, and **`/courses/*`**; **`/p/*`** is public.
+
+**`visibility`** controls **`/p/[offeringSlug]`** only; **`/offerings/...`** stays allowlist-gated.
+
+- **`visibility`** is optional — **omitted means `private`**.
+- **`private`**: **`/p/[slug]`** → **404** (no slug leak). **`/offerings/...`** unchanged (Clerk + **`students.yaml`**).
+- **`public`**: **`/p/[slug]`** renders the landing page (title, format, description, dates, syllabus titles from YAML). Lesson MDX and [`offering-assets`](app/api/offering-assets/[offeringSlug]/[...path]/route.ts) stay gated.
+- **`unlisted`**: same landing as **`public`**, with **`robots: noindex, nofollow`** on **`/p/[slug]`**.
+
+**`published`**: optional field, **no runtime effect** today (does not gate **`/p`**).
 
 ## Production notes
 
@@ -131,7 +142,7 @@ Sample **[`investing-basics-2026-05/videos.yaml`](content/offerings/investing-ba
 
 ## Content layout
 
-- **`content/offerings/<offeringSlug>/offering.yaml`** — title, **`format`**, **`modules`**, optional **`description`**, **`startDate`**, **`endDate`**, optional **`coverImage`** (string path under the offering folder, e.g. `assets/cover.jpg`; **validated only**—reserved for future dashboard or landing-page thumbnails, no rendering yet), optional **`published`** (boolean), **`visibility`** (`private` \| `public` \| `unlisted`). **`published`** / **`visibility`** are **validated and exposed only** for future behavior (no runtime effect yet).
+- **`content/offerings/<offeringSlug>/offering.yaml`** — title, **`format`**, **`modules`**, optional **`description`**, **`startDate`**, **`endDate`**, optional **`visibility`** (`private` \| `public` \| `unlisted`; **Visibility**), optional **`published`** (metadata only today), optional **`coverImage`** (path string under the offering folder; validated, not rendered yet).
 - **`content/offerings/<offeringSlug>/videos.yaml`** — optional video registry for `<VideoPlayer assetId="…" />`.
 - **`content/offerings/<offeringSlug>/<moduleSlug>/<lessonSlug>.mdx`** — lesson MDX (must match YAML).
 
@@ -256,4 +267,4 @@ In **`npm run dev`** only, offering pages show a footer note: **Access controlle
 
 ## Out of scope
 
-No database, Stripe/Telegram integrations, payments, or enforcement of **`published`** / **`visibility`** yet. Auth is Clerk + local YAML allowlist only.
+No database, Stripe/Telegram integrations, or payments. Auth is Clerk + local YAML allowlist only.
