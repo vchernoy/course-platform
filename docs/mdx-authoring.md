@@ -16,7 +16,14 @@ Configured in [`app/offerings/[offeringSlug]/[lessonSlug]/page.tsx`](../app/offe
 - **remark-math** / **rehype-katex** for LaTeX
 - **rehype-slug** — assigns heading ids (see [Heading anchors](#heading-anchors))
 - **rehype-autolink-headings** — hover permalink on h2/h3 only (see [Heading anchors](#heading-anchors))
+- **Lesson TOC** — [`extractLessonTocItems`](../lib/mdx-lesson-toc.ts) runs a separate **`@mdx-js/mdx`** compile using the same public remark/rehype plugins as above (no next-mdx-remote sanitizers), captures **`h2`** / **`h3`** ids after **rehype-slug**, and renders a sticky right nav on **`lg+`** ([lesson page](../app/offerings/%5BofferingSlug%5D/%5BlessonSlug%5D/page.tsx)). On smaller breakpoints the TOC is hidden.
 - **`Anchor`** / **`AnchorBlock`** — see [Manual anchors](#manual-anchors)
+
+## Table of contents (lesson layout)
+
+On **`lg`** breakpoints and up, lessons show **On this page** in a sticky column to the right. Entries come from Markdown **`##`** and **`###`** headings only (same ids **rehype-slug** assigns; duplicate titles get **`…`**, **`…-1`**, … like GitHub-style slugs). Links use **`#heading-id`**. Top-level **`#`** headings in MDX are **not** listed (they are optional in-lesson titles; the page **`h1`** is still the lesson title from **`offering.yaml`**).
+
+Extraction uses the same **`remarkDirective`**, **`remarkCalloutDirectives`**, **`remarkMath`**, **`rehypeKatex`**, and **`rehype-slug`** pipeline as the rendered lesson. Content that relies on next-mdx-remote’s JS-expression stripping might theoretically diverge; normal prose headings stay aligned.
 
 ## Heading anchors
 
@@ -105,6 +112,7 @@ The remote MDX pipeline removes JSX attributes whose values are JavaScript expre
 | Markdown `[text](url)` | `<a>` via [`MdxAnchor`](../components/mdx/MdxAnchor.tsx); supports `lesson:` / `offering:` pseudo-URLs |
 | `<Anchor id="…">…</Anchor>` | Manual inline fragment target — [Manual anchors](#manual-anchors) |
 | `<AnchorBlock id="…">…</AnchorBlock>` | Manual block fragment target — [Manual anchors](#manual-anchors) |
+| `##` / `###` headings | Drive the lesson **Table of contents** aside on wide screens ([TOC](#table-of-contents-lesson-layout)); not special MDX tags |
 
 Callouts and details use directive syntax (below), not raw MDX tags.
 

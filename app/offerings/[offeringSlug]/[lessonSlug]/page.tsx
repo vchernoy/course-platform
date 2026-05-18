@@ -19,9 +19,11 @@ import { createOfferingResourceLink } from "@/components/mdx/ResourceLink";
 import { Quiz } from "@/components/mdx/Quiz";
 import { createLessonVideoPlayer } from "@/components/mdx/VideoPlayer";
 import { LessonPager } from "@/components/course/LessonPager";
+import { LessonTableOfContents } from "@/components/course/LessonTableOfContents";
 import { PortalBreadcrumbs } from "@/components/portal/PortalBreadcrumbs";
 import { rewriteLessonAssetUrls } from "@/lib/offering-assets";
 import { remarkCalloutDirectives } from "@/lib/mdx-callouts";
+import { extractLessonTocItems, type LessonTocItem } from "@/lib/mdx-lesson-toc";
 import { loadOfferingResources } from "@/lib/offering-resources";
 import { loadOfferingVideos } from "@/lib/offering-videos";
 import {
@@ -98,6 +100,13 @@ export default async function LessonPage({ params }: Props) {
 
   const mdxSource = rewriteLessonAssetUrls(source, offeringSlug);
 
+  let tocItems: LessonTocItem[] = [];
+  try {
+    tocItems = await extractLessonTocItems(mdxSource);
+  } catch {
+    tocItems = [];
+  }
+
   const LessonMdxAnchor = createMdxAnchor(offeringSlug);
 
   const { content } = await compileMDX({
@@ -154,19 +163,28 @@ export default async function LessonPage({ params }: Props) {
   const { prev, next } = getLessonNeighbors(offering, lessonSlug);
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-8 lg:py-12">
-      <PortalBreadcrumbs
-        items={[
-          { label: "Dashboard", href: "/dashboard" },
-          { label: offering.title, href: `/offerings/${offeringSlug}` },
-          { label: hit.title },
-        ]}
-      />
-      <h1 className="mt-1 text-3xl font-bold tracking-tight text-zinc-900">
-        {hit.title}
-      </h1>
-      <article className="lesson-mdx mt-10">{content}</article>
-      <LessonPager courseSlug={offeringSlug} prev={prev} next={next} />
-    </main>
+    <div className="mx-auto max-w-7xl px-6 py-8 lg:py-12">
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_220px] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_260px]">
+        <main className="mx-auto min-w-0 max-w-3xl lg:mx-0">
+          <PortalBreadcrumbs
+            items={[
+              { label: "Dashboard", href: "/dashboard" },
+              { label: offering.title, href: `/offerings/${offeringSlug}` },
+              { label: hit.title },
+            ]}
+          />
+          <h1 className="mt-1 text-3xl font-bold tracking-tight text-zinc-900">
+            {hit.title}
+          </h1>
+          <article className="lesson-mdx mt-10">{content}</article>
+          <LessonPager courseSlug={offeringSlug} prev={prev} next={next} />
+        </main>
+        <aside className="hidden lg:block">
+          <div className="sticky top-24 pt-2">
+            <LessonTableOfContents items={tocItems} />
+          </div>
+        </aside>
+      </div>
+    </div>
   );
 }
