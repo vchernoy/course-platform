@@ -62,6 +62,18 @@ No database sync: edit YAML and reload.
 
 [`app/dashboard/page.tsx`](../app/dashboard/page.tsx) lists offerings the email may access, grouped by format. Cards link to `/offerings/[slug]` overview.
 
+### Admin routes
+
+Require a signed-in Clerk user; authorization uses **[`config/admins.yaml`](../config/admins.yaml)** — each row defines **offering scopes** (required) and **optional site scopes** (`sites` omitted → no site admin access). Typical paths:
+
+- **`/admin`**
+- **`/admin/offerings`**
+- **`/admin/offerings/[slug]`**
+- **`/admin/sites`**
+- **`/admin/sites/[siteSlug]`**
+
+See [Admin authoring](./admin-authoring.md) for validation rules and helpers.
+
 ## Visibility semantics (`offering.yaml`)
 
 **`visibility`** controls **`/p/[offeringSlug]` only.** `/offerings/...` remains allowlist-gated regardless.
@@ -83,7 +95,7 @@ Private slugs are not confirmed via `/p` (404 avoids enumeration signal).
 
 ## Middleware
 
-[`middleware.ts`](../middleware.ts) uses `createRouteMatcher` for `/offerings(.*)`, `/dashboard(.*)`, `/courses(.*)` and runs `auth.protect()` on those paths only.
+[`middleware.ts`](../middleware.ts) uses `createRouteMatcher` for `/offerings(.*)`, `/dashboard(.*)`, `/courses(.*)`, `/admin(.*)` and runs `auth.protect()` on those paths only.
 
 ## Security boundaries
 
