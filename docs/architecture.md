@@ -114,6 +114,10 @@ Full semantics: [Auth and visibility](./auth-and-visibility.md).
 - **Deployment assumption:** content ships with the app build or deployment artifact; dynamic edits require redeploy or external sync (out of scope here).
 - **Operational tradeoff:** simple auditing and review via Git; scaling authoring concurrency is manual.
 
+## Tooling
+
+TOC extraction uses **`@mdx-js/mdx`**; tests avoid **tsx**/CommonJS resolution issues with **`estree-walker`** by running [`tests/mdx-lesson-toc.spec.ts`](../tests/mdx-lesson-toc.spec.ts) under **Vitest** ([`vitest.config.ts`](../vitest.config.ts)). All other tests use **`tsx --test`** on **`tests/**/*.test.ts`** only.
+
 ## See also
 
 - [Auth and visibility](./auth-and-visibility.md)
