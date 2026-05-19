@@ -35,6 +35,28 @@ export type CompileLessonMdxParams = {
   resources: OfferingResourceMap;
 };
 
+/**
+ * ---------------------------------------------------------------------------
+ * Admin HTML preview — `"use client"` MDX components vs server stubs
+ * ---------------------------------------------------------------------------
+ * `compileLessonMdxContentForHtmlPreview` feeds `react-dom/server` `renderToString`
+ * (see `mdx-lesson-preview-serialize.tsx`). Client Components must not be invoked
+ * on that path; `lessonMdxComponentsForHtmlPreview` overrides real MDX tags with
+ * server-safe placeholders.
+ *
+ * **Preview-only client component stubs** (keep in sync when the lesson map changes):
+ *
+ * - **Quiz** → `HtmlPreviewQuizPlaceholder`
+ * - **CompoundInterestCalculator** → `HtmlPreviewCompoundInterestPlaceholder`
+ *
+ * When you add a new `"use client"` component to `lessonMdxComponents`, either:
+ *
+ * - add a matching server placeholder and override it in `lessonMdxComponentsForHtmlPreview`, or
+ * - move preview to a dedicated route / iframe that renders through the normal RSC pipeline
+ *   (see `docs/admin-authoring.md`).
+ * ---------------------------------------------------------------------------
+ */
+
 function lessonMdxOptions(): NonNullable<MDXRemoteProps["options"]> {
   return {
     mdxOptions: {
