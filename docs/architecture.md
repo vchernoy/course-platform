@@ -108,6 +108,15 @@ Unauthorized requests receive 401/403; lesson bodies never bypass this for files
 
 Full semantics: [Auth and visibility](./auth-and-visibility.md).
 
+## Offering-scoped search
+
+- Path: **`/offerings/[offeringSlug]/search`** (`?q=` query). Implemented in [`app/offerings/[offeringSlug]/search/page.tsx`](../app/offerings/%5BofferingSlug%5D/search/page.tsx).
+- **Auth:** Same as other `/offerings/*` routes (Clerk + [`students.yaml`](../config/students.yaml)); the offering layout runs before the search page.
+- **Index:** Built per request with [`MiniSearch`](https://github.com/lucaong/minisearch) from lesson MDX on disk ([`lib/offering-search.ts`](../lib/offering-search.ts)), cached for the lifetime of the React request cache ([`React.cache`](https://react.dev/reference/react/cache)). Fields include lesson title, module title, markdown headings (outside fenced blocks), stripped lesson text, and **text inside fenced code blocks** (fence lines removed; code remains searchable — see [`lib/offering-search-text.ts`](../lib/offering-search-text.ts)).
+- **No global or cross-offering search** in this design; no separate search database.
+
+The segment **`search`** is reserved at `/offerings/:slug/search`; do not use **`search`** as a lesson slug ([content layout](./content-layout.md)).
+
 ## Git-native architecture
 
 - **Source of truth:** repository files (`content/`, `config/students.yaml`), not a database.

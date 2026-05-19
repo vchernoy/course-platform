@@ -16,11 +16,18 @@ function isOfferingOverviewPath(pathname: string, offeringSlug: string): boolean
   return normalized === `/offerings/${offeringSlug}`;
 }
 
+function isOfferingSearchPath(pathname: string, offeringSlug: string): boolean {
+  const normalized = (pathname ?? "").replace(/\/+$/, "") || "/";
+  return normalized === `/offerings/${offeringSlug}/search`;
+}
+
+/** First path segment after `/offerings/:slug/`, or null for overview or reserved routes like `search`. */
 function activeLessonSlug(pathname: string, offeringSlug: string): string | null {
   const prefix = `/offerings/${offeringSlug}/`;
   if (!pathname.startsWith(prefix)) return null;
   const rest = pathname.slice(prefix.length).split("/")[0];
-  return rest || null;
+  if (!rest || rest === "search") return null;
+  return rest;
 }
 
 export function CourseSidebar({ course, courseSlug }: Props) {
@@ -31,6 +38,10 @@ export function CourseSidebar({ course, courseSlug }: Props) {
   );
   const overviewActive = useMemo(
     () => isOfferingOverviewPath(pathname ?? "", courseSlug),
+    [pathname, courseSlug]
+  );
+  const searchActive = useMemo(
+    () => isOfferingSearchPath(pathname ?? "", courseSlug),
     [pathname, courseSlug]
   );
   const [open, setOpen] = useState(false);
@@ -58,7 +69,45 @@ export function CourseSidebar({ course, courseSlug }: Props) {
               Overview
             </Link>
           </li>
+          <li>
+            <Link
+              href={`/offerings/${courseSlug}/search`}
+              onClick={() => setOpen(false)}
+              className={
+                searchActive
+                  ? "-ml-px block border-l-2 border-zinc-900 py-1.5 pl-3 text-sm font-medium text-zinc-900"
+                  : "-ml-px block border-l-2 border-transparent py-1.5 pl-3 text-sm text-zinc-600 hover:border-zinc-300 hover:text-zinc-900"
+              }
+            >
+              Search
+            </Link>
+          </li>
         </ul>
+        <form
+          action={`/offerings/${courseSlug}/search`}
+          method="get"
+          className="mt-3 flex gap-1.5"
+          role="search"
+          onSubmit={() => setOpen(false)}
+        >
+          <label htmlFor={`sidebar-search-${courseSlug}`} className="sr-only">
+            Search lessons
+          </label>
+          <input
+            id={`sidebar-search-${courseSlug}`}
+            name="q"
+            type="search"
+            placeholder="Search lessons…"
+            autoComplete="off"
+            className="min-w-0 flex-1 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-400/30"
+          />
+          <button
+            type="submit"
+            className="flex-shrink-0 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-xs font-medium text-zinc-800 hover:bg-zinc-50"
+          >
+            Go
+          </button>
+        </form>
       </div>
       {course.modules.map((mod) => (
         <div key={mod.slug}>
