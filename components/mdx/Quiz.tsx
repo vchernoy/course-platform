@@ -71,6 +71,9 @@ export function Quiz({ question, choices, answer, explanation }: Props) {
     setPicked(null);
   }, []);
 
+  const baseId = useId();
+  const legendId = `${baseId}-legend`;
+
   if (safeChoices.length === 0 || correctIndex < 0) {
     return (
       <div
@@ -86,9 +89,6 @@ export function Quiz({ question, choices, answer, explanation }: Props) {
       </div>
     );
   }
-
-  const baseId = useId();
-  const legendId = `${baseId}-legend`;
 
   return (
     <fieldset
