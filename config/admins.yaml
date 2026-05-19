@@ -1,0 +1,19 @@
+# Placeholder entries only — replace emails with real admins per environment.
+# Roles: owner | editor | viewer
+# offerings: non-empty; each entry is "*" (all offerings) or an offering slug matching content/offerings/<slug>/
+
+admins:
+  - email: vchernoy@gmail.com
+    role: owner
+    offerings:
+      - "*"
+
+  - email: instructor@example.com
+    role: editor
+    offerings:
+      - investing-basics-2026-05
+
+  - email: assistant@example.com
+    role: viewer
+    offerings:
+      - roth-ira-webinar-2026-04

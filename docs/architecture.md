@@ -1,6 +1,6 @@
 # Architecture
 
-Technical overview of the course platform: content model, routing, rendering, and trust boundaries. Related: [Auth and visibility](./auth-and-visibility.md), [MDX authoring](./mdx-authoring.md), [Content layout](./content-layout.md).
+Technical overview of the course platform: content model, routing, rendering, and trust boundaries. Related: [Auth and visibility](./auth-and-visibility.md), [MDX authoring](./mdx-authoring.md), [Content layout](./content-layout.md), [Admin authoring](./admin-authoring.md).
 
 ## Diagrams
 
@@ -78,6 +78,14 @@ See [Auth and visibility](./auth-and-visibility.md) for middleware, `visibility`
 
 The reserved URL segment **`search`** is documented with slug rules in [Content layout — Slug rules](./content-layout.md#slug-rules).
 
+## Admin authoring (scaffolding)
+
+- **Routes:** **`/admin`**, **`/admin/offerings`**, **`/admin/offerings/[offeringSlug]`** — read-only UI ([`app/admin/`](../app/admin/)).
+- **Auth:** Clerk (middleware) plus **[`config/admins.yaml`](../config/admins.yaml)** — offering-scoped **`owner`** \| **`editor`** \| **`viewer`** rows; helpers in [`lib/admin-auth.ts`](../lib/admin-auth.ts) / [`lib/admins.ts`](../lib/admins.ts). **`"*"`** in `offerings` means all offerings (typical for owners).
+- **Content access:** [`ContentRepository`](../lib/content-repository/types.ts) + [`GitContentRepository`](../lib/content-repository/git-content-repository.ts) wrap [`lib/offerings.ts`](../lib/offerings.ts) for future preview/publish; lesson routes still call `offerings` directly.
+
+Full roadmap (preview pipeline, Git publishing, future DB/repo backends): [Admin authoring](./admin-authoring.md).
+
 ## MDX rendering
 
 - Lessons are loaded from disk as strings and compiled with [`next-mdx-remote/rsc`](https://github.com/hashicorp/next-mdx-remote) in [`app/offerings/[offeringSlug]/[lessonSlug]/page.tsx`](../app/offerings/%5BofferingSlug%5D/%5BlessonSlug%5D/page.tsx).
@@ -132,5 +140,6 @@ TOC extraction uses **`@mdx-js/mdx`**; tests avoid **tsx**/CommonJS resolution i
 ## See also
 
 - [Auth and visibility](./auth-and-visibility.md)
+- [Admin authoring](./admin-authoring.md)
 - [Content layout](./content-layout.md)
 - [MDX authoring](./mdx-authoring.md)

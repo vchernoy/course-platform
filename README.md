@@ -6,7 +6,7 @@ Git-backed LMS prototype: each **offering** is `content/offerings/<slug>/` with 
 
 - **Content:** YAML defines modules and lesson slugs; `.mdx` files hold lesson bodies ([content layout](docs/content-layout.md)).
 - **Rendering:** Lessons compiled with [`next-mdx-remote/rsc`](https://github.com/hashicorp/next-mdx-remote); KaTeX for math ([MDX authoring](docs/mdx-authoring.md)).
-- **Routes:** Public **`/p/[slug]`** when `visibility` allows; private **`/dashboard`** and **`/offerings/*`** require Clerk + [`config/students.yaml`](config/students.yaml) ([auth and visibility](docs/auth-and-visibility.md)).
+- **Routes:** Public **`/p/[slug]`** when `visibility` allows; private **`/dashboard`** and **`/offerings/*`** require Clerk + [`config/students.yaml`](config/students.yaml) ([auth and visibility](docs/auth-and-visibility.md)); **`/admin/*`** requires Clerk + [`config/admins.yaml`](config/admins.yaml) ([admin authoring](docs/admin-authoring.md)).
 - **Assets:** `/api/offering-assets/...` streams files under `assets/` after the same auth checks as lessons ([architecture](docs/architecture.md)).
 
 Portal chrome: [`PortalHeader`](components/portal/PortalHeader.tsx), [`PortalBreadcrumbs`](components/portal/PortalBreadcrumbs.tsx), [`app/offerings/[offeringSlug]/layout.tsx`](app/offerings/%5BofferingSlug%5D/layout.tsx).
@@ -18,7 +18,8 @@ Portal chrome: [`PortalHeader`](components/portal/PortalHeader.tsx), [`PortalBre
 | `/` | Home |
 | `/p/[offeringSlug]` | Anonymous if offering is `public` / `unlisted` |
 | `/dashboard` | Signed in |
-| `/offerings/[offeringSlug]`, `/offerings/.../[lessonSlug]` | Signed in + allowlist |
+| `/admin`, `/admin/offerings`, `/admin/offerings/[slug]` | Signed in + [`admins.yaml`](config/admins.yaml) (offering-scoped) |
+| `/offerings/[offeringSlug]`, `/offerings/.../[lessonSlug]` | Signed in + [`students.yaml`](config/students.yaml) |
 | `/sign-in`, `/sign-up` | Clerk |
 
 Legacy: `/courses/investing-basics/:lesson` → `/offerings/investing-basics-2026-05/:lesson` ([`next.config.ts`](next.config.ts)).
@@ -39,7 +40,8 @@ Open [http://localhost:3000](http://localhost:3000). In dev, offering footers ma
 
 | Doc | Topics |
 |-----|--------|
-| [docs/architecture.md](docs/architecture.md) | Offerings, routes, MDX pipeline, assets, visibility model, Git-native design |
+| [docs/architecture.md](docs/architecture.md) | Offerings, routes, MDX pipeline, assets, visibility, search, admin scaffolding |
+| [docs/admin-authoring.md](docs/admin-authoring.md) | Admin roles, ContentRepository, preview/publish roadmap |
 | [docs/auth-and-visibility.md](docs/auth-and-visibility.md) | Clerk, `students.yaml`, middleware, `/p` vs `/offerings`, security boundaries |
 | [docs/content-layout.md](docs/content-layout.md) | `offering.yaml`, `videos.yaml`, `assets/`, slugs, copying offerings |
 | [docs/mdx-authoring.md](docs/mdx-authoring.md) | Components, Quiz, VideoPlayer, callouts, details, LaTeX |
@@ -56,6 +58,7 @@ Open [http://localhost:3000](http://localhost:3000). In dev, offering footers ma
 
 ## Current status / scope
 
-- Auth: Clerk + local YAML allowlist only.
-- No database, payments (Stripe), Telegram, or search.
+- Auth: Clerk + local YAML (`students.yaml` for learners, `admins.yaml` for read-only admin UI).
+- Offering-scoped lesson search under `/offerings/.../search`.
+- No payments (Stripe), Telegram, or DB-backed drafts yet.
 - `published` in `offering.yaml` is metadata-only at runtime.
