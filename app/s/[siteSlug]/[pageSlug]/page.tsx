@@ -75,7 +75,7 @@ export default async function SitePage({ params }: Props) {
     notFound();
   }
 
-  const content = await compileSitePageMdx(source);
+  const content = await compileSitePageMdx({ siteSlug, source });
 
   return (
     <article className="lesson-mdx">

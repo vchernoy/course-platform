@@ -7,6 +7,18 @@ Lesson MDX syntax, components, and compile pipeline. Related: [Content layout](.
 - Files live under `content/offerings/<offeringSlug>/<moduleSlug>/<lessonSlug>.mdx` and must align with `offering.yaml`.
 - Rendered only under `/offerings/.../[lessonSlug]` for authenticated, allowlisted users — not on `/p/*`.
 
+## Site pages (`/s/*`)
+
+- Files live under **`content/sites/<siteSlug>/pages/`** (`index.mdx` + optional `<slug>.mdx`). **`site.yaml`** metadata and visibility rules: [Content layout — Sites](./content-layout.md#sites-siteyaml--pages).
+- Rendered at **`/s/<siteSlug>`** and **`/s/<siteSlug>/<pageSlug>`** only when visibility is **public** or **unlisted** (private → **404** on those routes).
+- **Assets:** put files in **`content/sites/<siteSlug>/assets/`**. In MDX, reference **`![alt](../assets/file.png)`** or **`[label](../assets/file.pdf)`** — the compiler rewrites **`](../assets/`** to **`/api/site-assets/<siteSlug>/...`** ([`prepareSiteMdxSource`](../lib/mdx-site-compile.tsx)).
+- **`SiteImage`** / markdown **`img`** resolve relative paths through [`SiteImage`](../components/mdx/SiteImage.tsx) (same spirit as **`CourseImage`** for offerings). **`http(s)`** and absolute **`/`** URLs pass through unchanged.
+- **No** `lesson:` / `offering:` link resolver, **`Quiz`**, **`VideoPlayer`**, **`ResourceLink`**, or **`CourseImage`** on site pages.
+
+### Site asset URLs vs visibility
+
+If someone obtains a **direct** `/api/site-assets/...` URL: for **public/unlisted** sites the handler serves **without Clerk** (assets follow site visibility — they are not secret if the site is public). For **private** sites, the handler requires **Clerk + site admin** scope — see [Auth and visibility](./auth-and-visibility.md#site-asset-api).
+
 ## Compile pipeline
 
 Configured in [`app/offerings/[offeringSlug]/[lessonSlug]/page.tsx`](../app/offerings/%5BofferingSlug%5D/%5BlessonSlug%5D/page.tsx):
@@ -150,10 +162,18 @@ Provider notes: Vimeo suits simple iframe embeds; Cloudflare Stream supports ric
 
 Unknown ids or missing files (local) render an amber notice in the lesson.
 
-## CourseImage and markdown images
+## CourseImage and markdown images (lessons)
 
 - Markdown: `![alt](../assets/name.png)` — rewritten for asset API.
 - Component: `<CourseImage src="file.png" alt="..." />` — src relative to offering `assets/`.
+
+## SiteImage and markdown images (sites)
+
+- Markdown: `![alt](../assets/name.png)` — rewritten to **`/api/site-assets/<siteSlug>/...`** ([`prepareSiteMdxSource`](../lib/mdx-site-compile.tsx)).
+- Same rewrite applies to Markdown links: `[label](../assets/file.pdf)`.
+- Component: [`SiteImage`](../components/mdx/SiteImage.tsx) is wired as the default **`img`** mapper for site MDX; **`src`** is relative to **`content/sites/<siteSlug>/assets/`** unless **`http(s)`** or absolute **`/`**.
+
+See **Site pages (`/s/*`)** above and [Auth and visibility — Site asset API](./auth-and-visibility.md#site-asset-api).
 
 ## Callouts (directives)
 

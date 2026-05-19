@@ -68,9 +68,9 @@ The **`format`** field (`course`, `webinar`, `workshop`, `mini-course`) is metad
 
 See [Auth and visibility](./auth-and-visibility.md) for middleware, `visibility`, and failure modes (404/403).
 
-## Sites (phase 1)
+## Sites (filesystem pages)
 
-A **site** is a directory under **`content/sites/<siteSlug>/`** with **`site.yaml`** and **`pages/*.mdx`** (home is **`pages/index.mdx`** → **`/s/<siteSlug>`**). Validated and loaded by [`lib/sites.ts`](../lib/sites.ts). Public MDX uses a **minimal** compile helper [`lib/mdx-site-compile.tsx`](../lib/mdx-site-compile.tsx) (markdown, math, callouts/details — no lesson-only components or site assets API yet). Admin read-only UI: **`/admin/sites`**, **`/admin/sites/[siteSlug]`**, gated by optional **`sites`** rows in [`config/admins.yaml`](../config/admins.yaml).
+A **site** is a directory under **`content/sites/<siteSlug>/`** with **`site.yaml`**, **`pages/*.mdx`** (home **`pages/index.mdx`** → **`/s/<siteSlug>`**), and optional **`assets/`**. Validated by [`lib/sites.ts`](../lib/sites.ts). MDX compiles through [`lib/mdx-site-compile.tsx`](../lib/mdx-site-compile.tsx) (**`SiteImage`**, callouts, math — no lesson-only components). Static files use [`/api/site-assets/...`](../app/api/site-assets/%5BsiteSlug%5D/%5B...path%5D/route.ts) ([Auth and visibility](./auth-and-visibility.md#site-asset-api)). Admin read-only UI: **`/admin/sites`**, **`/admin/sites/[siteSlug]`**, gated by optional **`sites`** in [`config/admins.yaml`](../config/admins.yaml).
 
 ## Search
 
@@ -95,11 +95,11 @@ Full roadmap (preview pipeline, Git publishing, future DB/repo backends): [Admin
 ## MDX rendering
 
 - **Offerings:** Lessons are loaded from disk as strings and compiled through [`compileLessonMdxContent`](../lib/mdx-lesson-compile.tsx) ([`next-mdx-remote/rsc`](https://github.com/hashicorp/next-mdx-remote)) from [`app/offerings/[offeringSlug]/[lessonSlug]/page.tsx`](../app/offerings/%5BofferingSlug%5D/%5BlessonSlug%5D/page.tsx).
-- **Sites:** Pages use [`compileSitePageMdx`](../lib/mdx-site-compile.tsx) from [`app/s/[siteSlug]/page.tsx`](../app/s/%5BsiteSlug%5D/page.tsx) (restricted component map; phase&nbsp;1 — no `CourseImage`, videos, quizzes, or asset pipeline).
+- **Sites:** Pages use [`compileSitePageMdx`](../lib/mdx-site-compile.tsx) from [`app/s/[siteSlug]/page.tsx`](../app/s/%5BsiteSlug%5D/page.tsx) (restricted component map: **`SiteImage`**, callouts, math — no lesson-only tags). **`](../assets/...`** rewrites go to [`/api/site-assets/...`](../app/api/site-assets/%5BsiteSlug%5D/%5B...path%5D/route.ts); auth follows site visibility ([Auth and visibility](./auth-and-visibility.md#site-asset-api)).
 - `remark-directive`, custom callout/details handling, `remark-math`, and `rehype-katex` run in **both** lesson and site compile pipelines (sites use a smaller component map — see [`lib/mdx-site-compile.tsx`](../lib/mdx-site-compile.tsx)).
 - **rehype-slug** assigns heading `id`s; **rehype-autolink-headings** adds hover permalinks on **`h2`** and **`h3`** only (`h1` keeps `id`, no permalink chip).
 - **Lessons:** Markdown links use [`MdxAnchor`](../components/mdx/MdxAnchor.tsx) to resolve `lesson:` / `offering:` pseudo-URLs (including optional `#fragment`); see [MDX authoring](./mdx-authoring.md).
-- **Sites:** Plain Markdown links only in phase&nbsp;1 (no `lesson:` / `offering:` resolver on `/s/*`).
+- **Sites:** Plain Markdown links on `/s/*` (no `lesson:` / `offering:` resolver). **`](../assets/`** rewrites target **`/api/site-assets/...`** ([`prepareSiteMdxSource`](../lib/mdx-site-compile.tsx)).
 - KaTeX CSS is loaded from the root layout.
 
 Author-facing detail: [MDX authoring](./mdx-authoring.md).

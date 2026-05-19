@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="80" viewBox="0 0 320 80" role="img" aria-label="Demo banner">
+  <rect width="320" height="80" rx="8" fill="#f4f4f5" stroke="#d4d4d8"/>
+  <text x="160" y="46" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" fill="#18181b">
+    demo-site asset (SVG)
+  </text>
+</svg>

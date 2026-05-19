@@ -1,0 +1,1 @@
+This file demonstrates that markdown links to ../assets/ are rewritten to the site asset API (same pattern as images).

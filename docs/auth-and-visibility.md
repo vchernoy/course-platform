@@ -45,7 +45,7 @@ No database sync: edit YAML and reload.
 - Not behind Clerk middleware — anonymous requests reach the route handler ([`middleware.ts`](../middleware.ts) does not match `/s/*`).
 - Renders MDX from **`content/sites/`** only when [`isPublicSite`](../lib/sites.ts) is true (`visibility` **`public`** or **`unlisted`** in **`site.yaml`**). **`private`** (or omitted visibility, treated as private) → **404**.
 - **`unlisted`:** page metadata sets **`robots: noindex, nofollow`** (same pattern as `/p`).
-- Phase&nbsp;1 sites use a **minimal** MDX pipeline ([`lib/mdx-site-compile.tsx`](../lib/mdx-site-compile.tsx)); there is **no** site asset API yet — prefer absolute image URLs if needed.
+- **`../assets/`** references in site MDX rewrite to **`/api/site-assets/...`** ([`lib/mdx-site-compile.tsx`](../lib/mdx-site-compile.tsx)). Whether those URLs require Clerk depends on **`site.yaml`** visibility — see [Site asset API](#site-asset-api).
 
 ### `/p/[offeringSlug]`
 
@@ -104,6 +104,13 @@ Private slugs are not confirmed via `/p` (404 avoids enumeration signal).
 | `/p/*` HTML | If `public`/`unlisted` | Same | Same |
 | `/offerings/*` lesson MDX | N/A (middleware) | 403 on layout | Served |
 | `/api/offering-assets/...` | 401 | 403 | Stream after path validation |
+
+#### Site asset API
+
+[`/api/site-assets/[siteSlug]/[...path]`](../app/api/site-assets/%5BsiteSlug%5D/%5B...path%5D/route.ts) serves files under **`content/sites/<siteSlug>/assets/`**.
+
+- **Public or unlisted site** ([`isPublicSite`](../lib/sites.ts)): assets are served **without Clerk**. This is intentional: `/s/*` HTML is already public for those visibilities, so direct asset URLs are not treated as a separate confidentiality layer.
+- **Private site**: requires signed-in Clerk and **`canAdminAccessSite`** (same **`sites`** scope as `/admin/sites/[siteSlug]`). No session → **401**; session without site admin access → **403**. Invalid path or missing file → **404**.
 
 - **404:** [`app/not-found.tsx`](../app/not-found.tsx); loaders call `notFound()` for bad slugs or missing files.
 - **403:** offering layout when email lacks slug.

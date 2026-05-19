@@ -48,7 +48,20 @@ Path: **`content/sites/<siteSlug>/`**
 - **`pages/index.mdx`** — rendered at **`/s/<siteSlug>`**.
 - **`pages/<pageSlug>.mdx`** — rendered at **`/s/<siteSlug>/<pageSlug>`** (requests to **`/s/<siteSlug>/index`** redirect to **`/s/<siteSlug>`**).
 
-Public routing mirrors offerings: **`private`** yields **404** on `/s/*`; **`unlisted`** sets **`robots: noindex, nofollow`**. Phase&nbsp;1 does **not** ship a site asset API or lesson-only MDX components on site pages — see [`lib/mdx-site-compile.tsx`](../lib/mdx-site-compile.tsx).
+Public routing mirrors offerings: **`private`** yields **404** on `/s/*`; **`unlisted`** sets **`robots: noindex, nofollow`**.
+
+### `assets/` (sites)
+
+Path: **`content/sites/<siteSlug>/assets/`**
+
+Optional binaries (images, PDFs, text files, etc.). Served via [**`/api/site-assets/[siteSlug]/[...path]`**](../app/api/site-assets/%5BsiteSlug%5D/%5B...path%5D/route.ts):
+
+- **Public or unlisted** site: assets are served **without Clerk** (same visibility as `/s/*` HTML — intentionally public at the asset URL once linked from public pages).
+- **Private** site: requires **Clerk** + **site admin** access (`sites` row in [`config/admins.yaml`](../config/admins.yaml)); see [Auth and visibility — Site asset API](./auth-and-visibility.md#site-asset-api).
+
+MDX under **`pages/`** rewrites **`](../assets/...`** to that API (see [`prepareSiteMdxSource`](../lib/mdx-site-compile.tsx)). Path segments must satisfy **[`isSafeAssetSegment`](../lib/slug.ts)** after URL decoding.
+
+Site MDX uses [`lib/mdx-site-compile.tsx`](../lib/mdx-site-compile.tsx) — **`SiteImage`** / default **`img`**, callouts, math — not lesson-only components (`CourseImage`, `Quiz`, etc.).
 
 ## Lesson structure
 
