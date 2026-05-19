@@ -135,12 +135,20 @@ export default async function AdminOfferingDetailPage({ params }: Props) {
                       <span className="font-medium text-zinc-900">{les.title}</span>
                       <span className="text-zinc-400"> · {les.slug}</span>
                     </span>
-                    <Link
-                      href={`/admin/offerings/${offeringSlug}/lessons/${les.slug}/preview`}
-                      className="text-xs font-medium text-zinc-600 underline-offset-2 hover:text-zinc-900 hover:underline"
-                    >
-                      Preview
-                    </Link>
+                    <span className="flex flex-wrap gap-x-3 gap-y-1">
+                      <Link
+                        href={`/admin/offerings/${offeringSlug}/lessons/${les.slug}/edit`}
+                        className="text-xs font-medium text-zinc-600 underline-offset-2 hover:text-zinc-900 hover:underline"
+                      >
+                        Edit draft
+                      </Link>
+                      <Link
+                        href={`/admin/offerings/${offeringSlug}/lessons/${les.slug}/preview`}
+                        className="text-xs font-medium text-zinc-600 underline-offset-2 hover:text-zinc-900 hover:underline"
+                      >
+                        Preview
+                      </Link>
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -152,8 +160,13 @@ export default async function AdminOfferingDetailPage({ params }: Props) {
       <section className="mt-10 space-y-4">
         <h2 className="text-lg font-semibold text-zinc-900">Coming later</h2>
         <div className={placeholderCard}>
-          <p className="font-medium text-zinc-800">Drafts</p>
-          <p className="mt-1">DB-backed or workspace drafts (not implemented).</p>
+          <p className="font-medium text-zinc-800">Local drafts</p>
+          <p className="mt-1">
+            Per-admin drafts save under <code className="rounded bg-zinc-100 px-1 text-xs">.data/drafts/</code>{" "}
+            from <span className="font-medium text-zinc-700">Edit draft</span> (dev / self-hosted only — see{" "}
+            <span className="font-medium text-zinc-700">docs/admin-authoring.md</span>). Durable / shared drafts
+            via DB or GitHub are not implemented yet.
+          </p>
         </div>
         <div className={placeholderCard}>
           <p className="font-medium text-zinc-800">Publishing</p>

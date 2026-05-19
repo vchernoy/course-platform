@@ -127,17 +127,20 @@ export default async function AdminSiteDetailPage({ params }: Props) {
                   ? `/s/${siteSlug}/${p}`
                   : null;
             return (
-              <li key={p}>
+              <li key={p} className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <code className="rounded bg-zinc-100 px-1 py-0.5 text-xs">{p}</code>
+                <Link
+                  href={`/admin/sites/${siteSlug}/pages/${p}/edit`}
+                  className="text-xs font-medium text-zinc-600 underline-offset-2 hover:text-zinc-900 hover:underline"
+                >
+                  Edit draft
+                </Link>
                 {href ? (
-                  <>
-                    {" "}
-                    <Link href={href} className="text-emerald-700 underline-offset-2 hover:underline">
-                      View public page
-                    </Link>
-                  </>
+                  <Link href={href} className="text-xs font-medium text-emerald-700 underline-offset-2 hover:underline">
+                    View public page
+                  </Link>
                 ) : (
-                  <span className="text-zinc-500"> — private site</span>
+                  <span className="text-xs text-zinc-500">Private site — no public URL</span>
                 )}
               </li>
             );
@@ -146,7 +149,10 @@ export default async function AdminSiteDetailPage({ params }: Props) {
       </section>
 
       <p className="mt-10 rounded-lg border border-dashed border-zinc-200 bg-zinc-50/80 p-4 text-sm text-zinc-600">
-        Editing and preview routes are planned for a later phase; update MDX on disk and redeploy for now.
+        Use <span className="font-medium text-zinc-800">Edit draft</span> for local MDX drafts under{" "}
+        <code className="rounded bg-zinc-100 px-1 text-xs">.data/drafts/</code> (dev / self-hosted — not durable on
+        typical serverless hosts). Publishing still means editing Git-tracked files or a future publish workflow; see{" "}
+        <span className="font-medium text-zinc-800">docs/admin-authoring.md</span>.
       </p>
     </main>
   );

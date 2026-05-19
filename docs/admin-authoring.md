@@ -1,6 +1,6 @@
-# Admin authoring (preview + Git-backed publishing)
+# Admin authoring (preview, local drafts, Git-backed publishing)
 
-This document describes the **intended** admin authoring architecture. Today the app ships scaffolding: [`/admin`](../app/admin/layout.tsx), [`config/admins.yaml`](../config/admins.yaml), [`lib/content-repository/`](../lib/content-repository/), YAML-driven **offering-scoped** admin roles plus optional **site-scoped** **`sites`**, shared lesson compilation in [`lib/mdx-lesson-compile.tsx`](../lib/mdx-lesson-compile.tsx), read-only **sites** lists under **`/admin/sites`**, and a **non-persistent** lesson preview at **`/admin/offerings/[slug]/lessons/[lessonSlug]/preview`**. No draft persistence, Git writes, browser editor (Monaco/TipTap), or database yet.
+This document describes the **admin authoring architecture**. The app ships: [`/admin`](../app/admin/layout.tsx), [`config/admins.yaml`](../config/admins.yaml), [`lib/content-repository/`](../lib/content-repository/), YAML-driven **offering-scoped** admin roles plus optional **site-scoped** **`sites`**, shared lesson compilation in [`lib/mdx-lesson-compile.tsx`](../lib/mdx-lesson-compile.tsx), site compilation in [`lib/mdx-site-compile.tsx`](../lib/mdx-site-compile.tsx), read-only **sites** lists under **`/admin/sites`**, **lesson MDX preview**, **site MDX preview** (via server actions used from edit UI), and **Phase 3A local draft files** under **`.data/drafts/`** (per-admin, filesystem only). No database, GitHub publish API, Monaco/TipTap, or collaborative editing yet.
 
 Related: [Architecture](./architecture.md), [Auth and visibility](./auth-and-visibility.md), [Content layout](./content-layout.md).
 
@@ -13,14 +13,16 @@ Admins are configured in **[`config/admins.yaml`](../config/admins.yaml)** (Git-
 - **`offerings`** — non-empty array; each entry is **`"`*`"`** (all offerings on the platform) **or** a safe offering slug under `content/offerings/`. Mixing **`*`** with specific slugs is **not** allowed.
 - **`sites`** (optional) — when **omitted**, this admin has **no** site admin access. When present: non-empty array; each entry is **`"`*`"`** (all sites under `content/sites/`) **or** a safe site slug. Mixing **`*`** with specific site slugs is **not** allowed.
 
-Helpers live in [`lib/admins.ts`](../lib/admins.ts) (pure + config) and [`lib/admin-auth.ts`](../lib/admin-auth.ts) (loads YAML):
+**Application code** should use [`lib/admin-auth.ts`](../lib/admin-auth.ts) (loads YAML once per call site):
 
 - `emailIsAdmin` / `canAccessAdmin` — any configured admin row.
 - `getAdminAccess` — role + scopes (`allOfferings` / `allSites` vs explicit slug lists).
-- `canAdminAccessOffering(email, offeringSlug)` — gate **`/admin/offerings/[slug]`**.
+- `canAdminAccessOffering(email, offeringSlug)` — gate **`/admin/offerings/[slug]`** and lesson admin routes.
 - `listAdminAllowedOfferingSlugs(email, allOfferingSlugs)` — drives **`/admin/offerings`**.
-- `canAdminAccessSite(email, siteSlug)` — gate **`/admin/sites/[siteSlug]`**.
+- `canAdminAccessSite(email, siteSlug)` — gate **`/admin/sites/[siteSlug]`** and site page edit routes.
 - `listAdminAllowedSiteSlugs(email, allSiteSlugs)` — drives **`/admin/sites`**.
+
+[`lib/admins.ts`](../lib/admins.ts) holds pure parsers plus **`…FromConfig`** helpers — useful for tests and offline validation; route handlers and server actions should prefer **`admin-auth`** wrappers above.
 
 An admin with **`offerings: ["*"]`** sees **every** offering returned by [`listOfferingSlugs`](../lib/offerings.ts) (typical for **owner**). Scoped rows only see listed slugs.
 
@@ -32,75 +34,95 @@ An admin with **`offerings: ["*"]`** sees **every** offering returned by [`listO
 
 | Kind | Storage | Notes |
 |------|---------|--------|
-| **Published lessons** | Git / filesystem (`content/offerings/…/*.mdx`) | Source of truth for learners after deploy. |
-| **Draft / unsaved edits** | None persisted yet | Preview uses an in-memory MDX string only (textarea state + server round-trip). |
-| **Future drafts** | Planned: database or workspace store | Holds WIP before publish. |
-| **Future publish** | Planned: Git commit (e.g. GitHub API) | Promotion from draft to repo; deployment unchanged. |
+| **Published lessons** | Git / filesystem (`content/offerings/…/*.mdx`) | Source of truth for learners after deploy. Never modified by admin edit UI. |
+| **Published site pages** | Git / filesystem (`content/sites/…/pages/*.mdx`) | Same; edit UI does not write here. |
+| **Local per-admin drafts** | **`.data/drafts/`** on the host filesystem | Phase 3A: YAML-frontmatter `.mdx` files per admin email basename. **Development / self-hosted only** — **not** durable on typical **Vercel/serverless** ephemeral disks; treat as a convenience layer until a real backend exists. |
+| **Preview-only textarea** | In-memory | **`…/preview`** lesson route starts from **published** Git source each load; does not read `.data` drafts. |
 
-The admin preview route loads **published** source by default (via [`GitContentRepository`](../lib/content-repository/git-content-repository.ts)), lets you edit MDX in the browser **without saving**, and re-renders on **Preview** — nothing writes to `*.mdx`, `offering.yaml`, `videos.yaml`, `resources.yaml`, or Git.
+### Draft layout (Phase 3A)
+
+Drafts are addressed by [`DraftRepository`](../lib/drafts/types.ts); the default implementation is [`LocalFileDraftRepository`](../lib/drafts/local-file-draft-repository.ts):
+
+- Offerings: `.data/drafts/offerings/<offeringSlug>/<lessonSlug>/<sanitized-email>.mdx`
+- Sites: `.data/drafts/sites/<siteSlug>/<pageSlug>/<sanitized-email>.mdx` (`pageSlug` **`index`** for the home page)
+
+**Admin routes:**
+
+- **Edit draft (lesson):** `/admin/offerings/[offeringSlug]/lessons/[lessonSlug]/edit` — loads published source unless this admin has a draft; **Save draft** / **Discard draft** touch **only** `.data/drafts`.
+- **Edit draft (site page):** `/admin/sites/[siteSlug]/pages/[pageSlug]/edit` — same semantics.
+
+**Preview buttons** on edit pages compile the **current textarea** via the same pipelines as learners (then HTML serialization for display — see below).
+
+### Future draft backends (planned only)
+
+| Implementation | Role |
+|----------------|------|
+| **`LocalFileDraftRepository`** | Current Phase 3A behavior under `.data/drafts`. |
+| **`DatabaseDraftRepository`** | Durable drafts, metadata, review — optional promotion to Git. |
+| **`GitHubDraftRepository`** | Branches or PRs — not implemented. |
+
+Published content remains **Git-tracked** / reproducible; durable drafts would sit **beside** that until publish.
 
 ## Preview implementation: skeleton vs final architecture
 
-**Current (temporary skeleton):** submitted MDX is compiled with [`compileLessonMdxContent`](../lib/mdx-lesson-compile.tsx) (same pipeline as learners), then turned into **static HTML** via **`react-dom/server`**’s **`renderToString`** (loaded **dynamically** so Turbopack does not merge `react-dom/server` into the shared lesson compile graph) inside [`lib/mdx-lesson-preview-serialize.tsx`](../lib/mdx-lesson-preview-serialize.tsx). The admin UI injects that HTML with **`dangerouslySetInnerHTML`**. The server action lives in [`lib/admin-preview-lesson-action.ts`](../lib/admin-preview-lesson-action.ts).
+**Lessons — current (temporary skeleton):** submitted MDX is compiled with the lesson pipeline, then turned into **static HTML** via **`react-dom/server`**’s **`renderToString`** (loaded **dynamically**) inside [`lib/mdx-lesson-preview-serialize.tsx`](../lib/mdx-lesson-preview-serialize.tsx). The server action is [`lib/admin-preview-lesson-action.ts`](../lib/admin-preview-lesson-action.ts). Auth uses **`canAdminAccessOffering`** from [`lib/admin-auth.ts`](../lib/admin-auth.ts).
 
-**Important limitation:** this is **not** the final preview architecture. **`renderToString` + static HTML injection does not run the normal Next.js / React Client Component hydration path** for interactive lesson blocks (`Quiz`, calculators, etc.). For the HTML skeleton, **`Quiz`** and **`CompoundInterestCalculator`** are replaced by **server-rendered placeholder callouts** so preview does not crash; other client-heavy blocks may still need the same treatment later. Those placeholders **must not** be assumed to match learner behavior until preview is upgraded.
+**Sites — same pattern:** [`lib/mdx-site-preview-serialize.tsx`](../lib/mdx-site-preview-serialize.tsx) + [`lib/admin-preview-site-action.ts`](../lib/admin-preview-site-action.ts), gated by **`canAdminAccessSite`**.
 
-**Final direction:** preview should render MDX through the **normal App Router / RSC (and client boundary) pipeline**, for example:
+**Important limitation:** **`renderToString` + static HTML injection does not run the normal Next.js / React Client Component hydration path** for interactive lesson blocks (`Quiz`, calculators, etc.). For lessons, preview replaces some blocks with placeholders so preview does not crash. Treat admin preview as **layout/content sanity checking**, not authoritative interactive QA.
 
-- a **dedicated preview route** (or parallel route) that server-compiles MDX and streams **live React output** the same way [`app/offerings/…/[lessonSlug]/page.tsx`](../app/offerings/%5BofferingSlug%5D/%5BlessonSlug%5D/page.tsx) does, optionally embedded in an **`iframe`** for isolation; or  
-- another pattern that preserves **client component hydration**, not serialized HTML paste.
-
-Until then, treat admin preview as **layout/content sanity checking**, not authoritative interactive QA.
+**Final direction:** preview should render through the **normal App Router / RSC pipeline** (e.g. dedicated route or `iframe`) so client components hydrate — see architecture discussion in earlier revisions of this doc.
 
 ## Intended authoring workflow
 
 ```text
-Admin edits MDX
+Admin edits MDX (published or local draft overlay)
 ↓
-Unsaved draft compiled in memory (or stored in DB)
+Preview compiles in memory (optional)
 ↓
-Preview rendered with same MDX pipeline as lessons
+Save draft writes .data/drafts only (Phase 3A) — or future DB/GitHub draft store
 ↓
-Publish creates Git commit (via GitHub API or trusted worker)
+Publish (future) creates Git commit / merge
 ↓
-GitHub push triggers deployment
+Deploy from Git refreshes what learners see
 ```
-
-**Preview before save/publish:** Use the same compile helper as lessons ([`compileLessonMdxContent`](../lib/mdx-lesson-compile.tsx)); today’s admin UI additionally serializes to HTML for display only (see limitations above).
 
 ## Why Git-native publishing
 
 - **Published** content stays **reviewable and reproducible** (PRs, blame, rollback).
-- **Filesystem writes alone** are insufficient in production: multi-instance hosts race on disk, there is no audit trail, and rollback is ad hoc.
-- **Operational shape:** an Admin “Publish” action should produce a **commit** (eventually via **GitHub API** or a locked-down CI job), then normal **deploy from Git** refreshes what learners see.
+- **Filesystem writes on multi-instance hosts** are insufficient for published content: races, no audit trail.
+- **Operational shape:** a future **Publish** action should produce a **commit** (GitHub API or CI), then deploy from Git.
 
-This matches the platform principle that **Git/files remain source of truth for published content** ([architecture](./architecture.md)).
+This matches the principle that **Git/files remain source of truth for published content** ([architecture](./architecture.md)).
 
 ## ContentRepository abstraction
 
-[`lib/content-repository/types.ts`](../lib/content-repository/types.ts) defines a **`ContentRepository`** for reading (and future writing) offerings and lesson sources. [`GitContentRepository`](../lib/content-repository/git-content-repository.ts) implements today’s behavior using [`loadOffering`](../lib/offerings.ts) / [`loadLessonSource`](../lib/offerings.ts).
+[`lib/content-repository/types.ts`](../lib/content-repository/types.ts) defines **`ContentRepository`** for reading offerings and lesson sources. [`GitContentRepository`](../lib/content-repository/git-content-repository.ts) implements today’s behavior using [`loadOffering`](../lib/offerings.ts) / [`loadLessonSource`](../lib/offerings.ts).
 
-Lesson routes **do not** use this layer yet; they keep calling `lib/offerings` directly so behavior is unchanged.
+**Drafts** use a separate **`DraftRepository`** ([`lib/drafts/`](../lib/drafts/)), not `ContentRepository`, so publish and draft storage can evolve independently.
 
-### Future repository backends (planned only)
+Lesson routes **do not** use `ContentRepository` yet; they call `lib/offerings` directly.
+
+### Future repository backends (published content — planned only)
 
 | Implementation | Role |
 |----------------|------|
 | **GitContentRepository** | Current disk + YAML + MDX under `content/offerings/` (read; later publish via Git). |
-| **DatabaseContentRepository** | Draft bodies, metadata, review state; **published** snapshot still promoted to Git or exported blob. |
-| **CustomerGitHubRepository** | Per-tenant repo / branch; publish opens PR or merges via GitHub App (not implemented). |
+| **DatabaseContentRepository** | Metadata / drafts / review; **published** snapshot promoted to Git. |
+| **CustomerGitHubRepository** | Per-tenant repo / branch — not implemented. |
 
-Object storage would hold **large binaries** (replacing or mirroring `assets/`) while **lesson MDX** and **registries** remain addressable and searchable.
+Object storage would hold **large binaries** while **MDX** stays searchable.
 
 ## Explicit non-goals (current phase)
 
-- Browser editor (Monaco, TipTap, etc.)
-- GitHub API writes, DB schema, object storage
-- Draft persistence, collaborative editing, AI authoring flows
+- Rich browser editor (Monaco, TipTap, etc.)
+- GitHub API writes for publish, production DB schema for drafts
+- Collaborative editing, autosave, AI authoring flows
 
-These stay out of scope until the read-only scaffolding and publishing design are validated.
+These stay out of scope until local authoring UX and publish design are validated.
 
 ## See also
 
-- [Architecture](./architecture.md) — routes, MDX, Git-native summary
+- [Architecture](./architecture.md) — routes, MDX, Git-native summary, Phase 3A drafts note
 - [Auth and visibility](./auth-and-visibility.md) — Clerk, middleware, `students.yaml`
+- [`lib/drafts/draft-frontmatter.ts`](../lib/drafts/draft-frontmatter.ts) — strict YAML frontmatter parse/format used by draft files

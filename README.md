@@ -18,7 +18,7 @@ Portal chrome: [`PortalHeader`](components/portal/PortalHeader.tsx), [`PortalBre
 | `/` | Home |
 | `/p/[offeringSlug]` | Anonymous if offering is `public` / `unlisted` |
 | `/dashboard` | Signed in |
-| `/admin`<br>`/admin/offerings`<br>`/admin/offerings/[slug]`<br>`/admin/sites`<br>`/admin/sites/[siteSlug]` | Signed in + [`admins.yaml`](config/admins.yaml) (**offering scopes** and **optional site scopes**) |
+| `/admin`<br>`/admin/offerings`<br>`/admin/offerings/[slug]`<br>`/admin/offerings/…/lessons/…/preview`<br>`/admin/offerings/…/lessons/…/edit`<br>`/admin/sites`<br>`/admin/sites/[siteSlug]`<br>`/admin/sites/…/pages/…/edit` | Signed in + [`admins.yaml`](config/admins.yaml) (**offering scopes** and **optional site scopes**); **edit** saves local drafts under `.data/drafts` only ([admin authoring](docs/admin-authoring.md)) |
 | `/s/[siteSlug]`, `/s/.../[pageSlug]` | Anonymous when site `visibility` is `public` / `unlisted` ([content layout](docs/content-layout.md)) |
 | `/offerings/[offeringSlug]`, `/offerings/.../[lessonSlug]` | Signed in + [`students.yaml`](config/students.yaml) |
 | `/sign-in`, `/sign-up` | Clerk |
@@ -55,12 +55,12 @@ Open [http://localhost:3000](http://localhost:3000). In dev, offering footers ma
 | `npm run build` | Production build |
 | `npm run start` | Serve production |
 | `npm run lint` | ESLint |
-| `npm test` | `tsx --test` |
+| `npm test` | `tsx --test tests/**/*.test.ts` and Vitest ([`vitest.config.ts`](vitest.config.ts)) |
 
 ## Current status / scope
 
 - Auth: Clerk + local YAML (`students.yaml` for learners, `admins.yaml` for read-only admin UI — **offering scopes** per row and **optional site scopes**).
 - Filesystem-backed marketing/simple **sites** at **`/s/...`** (`content/sites/`); admin listing under **`/admin/sites`**.
 - Offering-scoped lesson search under `/offerings/.../search`.
-- No payments (Stripe), Telegram, or DB-backed drafts yet.
+- No payments (Stripe), Telegram, or durable DB/Git-backed drafts yet; **Phase 3A** stores **local filesystem drafts** under `.data/drafts` for dev/self-hosted admin editing ([admin authoring](docs/admin-authoring.md)).
 - `published` in `offering.yaml` is metadata-only at runtime.

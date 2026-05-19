@@ -55,9 +55,11 @@ export function LessonMdxPreviewForm({
           aria-label="Lesson MDX source"
         />
         <p className="mt-2 text-xs text-zinc-500">
-          Unsaved draft — nothing is written to disk or Git. Preview uses a temporary HTML
-          serialization; interactive lesson blocks may not behave like the live lesson page (
-          <span className="font-medium text-zinc-700">see docs/admin-authoring.md</span>).
+          Nothing here writes to published <span className="font-medium text-zinc-700">content/</span> files. Use{" "}
+          <span className="font-medium text-zinc-700">Edit draft</span> on the offering admin page to save a local
+          per-admin draft under <code className="rounded bg-zinc-100 px-0.5">.data/drafts/</code> (dev / self-hosted
+          only). Preview uses a temporary HTML serialization; interactive lesson blocks may not behave like the live
+          lesson page (<span className="font-medium text-zinc-700">see docs/admin-authoring.md</span>).
         </p>
       </section>
 

@@ -32,3 +32,6 @@ yarn-error.log*
 
 # clerk configuration (can include secrets)
 /.clerk/
+
+# local admin drafts (Phase 3A; dev / self-hosted — not for durable serverless disk)
+/.data/

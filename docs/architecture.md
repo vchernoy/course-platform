@@ -70,7 +70,7 @@ See [Auth and visibility](./auth-and-visibility.md) for middleware, `visibility`
 
 ## Sites (filesystem pages)
 
-A **site** is a directory under **`content/sites/<siteSlug>/`** with **`site.yaml`**, **`pages/*.mdx`** (home **`pages/index.mdx`** → **`/s/<siteSlug>`**), and optional **`assets/`**. Validated by [`lib/sites.ts`](../lib/sites.ts). MDX compiles through [`lib/mdx-site-compile.tsx`](../lib/mdx-site-compile.tsx) (**`SiteImage`**, callouts, math — no lesson-only components). Static files use [`/api/site-assets/...`](../app/api/site-assets/%5BsiteSlug%5D/%5B...path%5D/route.ts) ([Auth and visibility](./auth-and-visibility.md#site-asset-api)). Admin read-only UI: **`/admin/sites`**, **`/admin/sites/[siteSlug]`**, gated by optional **`sites`** in [`config/admins.yaml`](../config/admins.yaml).
+A **site** is a directory under **`content/sites/<siteSlug>/`** with **`site.yaml`**, **`pages/*.mdx`** (home **`pages/index.mdx`** → **`/s/<siteSlug>`**), and optional **`assets/`**. Validated by [`lib/sites.ts`](../lib/sites.ts). MDX compiles through [`lib/mdx-site-compile.tsx`](../lib/mdx-site-compile.tsx) (**`SiteImage`**, callouts, math — no lesson-only components). Static files use [`/api/site-assets/...`](../app/api/site-assets/%5BsiteSlug%5D/%5B...path%5D/route.ts) ([Auth and visibility](./auth-and-visibility.md#site-asset-api)). Admin UI: **`/admin/sites`**, **`/admin/sites/[siteSlug]`**, **`/admin/sites/[siteSlug]/pages/[pageSlug]/edit`**, gated by optional **`sites`** in [`config/admins.yaml`](../config/admins.yaml) and **`canAdminAccessSite`** in [`lib/admin-auth.ts`](../lib/admin-auth.ts).
 
 ## Search
 
@@ -83,12 +83,19 @@ A **site** is a directory under **`content/sites/<siteSlug>/`** with **`site.yam
 
 The reserved URL segment **`search`** is documented with slug rules in [Content layout — Slug rules](./content-layout.md#slug-rules).
 
-## Admin authoring (scaffolding)
+## Admin authoring (scaffolding + Phase 3A drafts)
 
-- **Routes:** **`/admin`**, **`/admin/offerings`**, **`/admin/offerings/[offeringSlug]`**, **`/admin/offerings/[offeringSlug]/lessons/[lessonSlug]/preview`**, **`/admin/sites`**, **`/admin/sites/[siteSlug]`** ([`app/admin/`](../app/admin/)).
-- **Auth:** Clerk (middleware) plus **[`config/admins.yaml`](../config/admins.yaml)** — offering-scoped **`owner`** \| **`editor`** \| **`viewer`** rows and optional **site-scoped** **`sites`** (omit → no site admin access); helpers in [`lib/admin-auth.ts`](../lib/admin-auth.ts) / [`lib/admins.ts`](../lib/admins.ts). **`"*"`** in `offerings` or `sites` means all entries of that kind (typical for owners).
-- **Content access:** [`ContentRepository`](../lib/content-repository/types.ts) + [`GitContentRepository`](../lib/content-repository/git-content-repository.ts) wrap [`lib/offerings.ts`](../lib/offerings.ts) for admin reads; learner lesson routes still load sources via `offerings` directly.
-- **Lesson MDX compile:** shared helper [`lib/mdx-lesson-compile.tsx`](../lib/mdx-lesson-compile.tsx) (`compileLessonMdxContent`) keeps learner and admin preview on the same remark/rehype + component map; admin-only HTML serialization lives in [`lib/mdx-lesson-preview-serialize.tsx`](../lib/mdx-lesson-preview-serialize.tsx) (temporary skeleton — [Admin authoring](./admin-authoring.md)).
+- **Routes:** **`/admin`**, **`/admin/offerings`**, **`/admin/offerings/[offeringSlug]`**, **`/admin/offerings/[offeringSlug]/lessons/[lessonSlug]/preview`**, **`/admin/offerings/[offeringSlug]/lessons/[lessonSlug]/edit`**, **`/admin/sites`**, **`/admin/sites/[siteSlug]`**, **`/admin/sites/[siteSlug]/pages/[pageSlug]/edit`** ([`app/admin/`](../app/admin/)).
+- **Auth:** Clerk (middleware) plus **[`config/admins.yaml`](../config/admins.yaml)** — offering-scoped **`owner`** \| **`editor`** \| **`viewer`** rows and optional **site-scoped** **`sites`** (omit → no site admin access). Route handlers and server actions should use [`lib/admin-auth.ts`](../lib/admin-auth.ts) (`canAdminAccessOffering`, `canAdminAccessSite`, etc.). **`"*"`** in `offerings` or `sites` means all entries of that kind (typical for owners).
+- **Content access:** [`ContentRepository`](../lib/content-repository/types.ts) + [`GitContentRepository`](../lib/content-repository/git-content-repository.ts) wrap [`lib/offerings.ts`](../lib/offerings.ts) for some admin reads; learner lesson routes still load sources via `offerings` directly.
+- **Lesson MDX compile:** shared helper [`lib/mdx-lesson-compile.tsx`](../lib/mdx-lesson-compile.tsx) keeps learner and admin preview on the same remark/rehype + component map; admin-only HTML serialization lives in [`lib/mdx-lesson-preview-serialize.tsx`](../lib/mdx-lesson-preview-serialize.tsx) (temporary skeleton — [Admin authoring](./admin-authoring.md)).
+- **Site MDX preview (admin):** [`lib/mdx-site-preview-serialize.tsx`](../lib/mdx-site-preview-serialize.tsx) mirrors the lesson preview pattern for **`compileSitePageMdx`** output.
+
+### Draft persistence (Phase 3A, local only)
+
+- **Published** lessons and site pages remain under **`content/`** (Git / filesystem). Nothing in the edit UI writes there.
+- **Per-admin drafts** default to **`.data/drafts/`** via [`LocalFileDraftRepository`](../lib/drafts/local-file-draft-repository.ts) ([`DraftRepository`](../lib/drafts/types.ts)). Files use YAML frontmatter + MDX body ([`lib/drafts/draft-frontmatter.ts`](../lib/drafts/draft-frontmatter.ts)).
+- **Operational caveat:** this is for **development / self-hosted** setups with a stable writable disk. **Do not rely on it for durable storage on typical serverless platforms** (ephemeral filesystem). Future **`DatabaseDraftRepository`** / **`GitHubDraftRepository`** can replace the default implementation without changing the abstraction.
 
 Full roadmap (preview pipeline, Git publishing, future DB/repo backends): [Admin authoring](./admin-authoring.md).
 
