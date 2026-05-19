@@ -66,9 +66,7 @@ If the offering should have a public brochure page, set **`visibility`** accordi
 
 Slugs for offerings, modules, and lessons must satisfy [`isSafeSlug`](../lib/slug.ts) / `assertSafeSlug`: practical constraint is lowercase URL-safe segments (letters, digits, hyphens) consistent with route params and file paths. Invalid slugs yield validation errors at load time or `notFound()` in routes.
 
-### Reserved segment: `search`
-
-The portal route **`/offerings/[offeringSlug]/search`** is the offering-scoped lesson search page ([architecture](./architecture.md)). Do **not** use **`search`** as a **lesson** slug: that URL is reserved and will not resolve to a lesson file.
+**Reserved segment:** **`search`** — `/offerings/[offeringSlug]/search` is the lesson search page ([Architecture — Search](./architecture.md#search)), so **`search`** must not be used as a lesson slug.
 
 ## See also
 
