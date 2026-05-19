@@ -1,6 +1,6 @@
 # Content layout
 
-Filesystem layout for offerings: YAML registries, assets, lessons, and slug rules. Related: [Architecture](./architecture.md), [MDX authoring](./mdx-authoring.md), [Auth and visibility](./auth-and-visibility.md).
+Filesystem layout for **offerings** and **simple sites**: YAML registries, assets, lessons/pages, and slug rules. Related: [Architecture](./architecture.md), [MDX authoring](./mdx-authoring.md), [Auth and visibility](./auth-and-visibility.md).
 
 ## `offering.yaml`
 
@@ -40,6 +40,16 @@ Path: `content/offerings/<offeringSlug>/assets/`
 
 Binary files (images, PDFs, etc.) served through [`app/api/offering-assets/[offeringSlug]/[...path]/route.ts`](../app/api/offering-assets/%5BofferingSlug%5D/%5B...path%5D/route.ts). Same Clerk + allowlist checks as lessons.
 
+## Sites (`site.yaml` + `pages/`)
+
+Path: **`content/sites/<siteSlug>/`**
+
+- **`site.yaml`** — validated by [`lib/sites.ts`](../lib/sites.ts). Required: **`title`** (non-empty string), **`navigation`** (array; may be empty). Each nav item has **`title`** and **`page`** (`index` for the home file, or any safe slug matching a page file). Optional **`visibility`**: `private` \| `public` \| `unlisted` (omitted → **`private`**). **`loadSite`** also requires **`pages/index.mdx`** and that every **`navigation[].page`** resolves to an existing **`pages/<page>.mdx`** (for `index`, **`pages/index.mdx`**).
+- **`pages/index.mdx`** — rendered at **`/s/<siteSlug>`**.
+- **`pages/<pageSlug>.mdx`** — rendered at **`/s/<siteSlug>/<pageSlug>`** (requests to **`/s/<siteSlug>/index`** redirect to **`/s/<siteSlug>`**).
+
+Public routing mirrors offerings: **`private`** yields **404** on `/s/*`; **`unlisted`** sets **`robots: noindex, nofollow`**. Phase&nbsp;1 does **not** ship a site asset API or lesson-only MDX components on site pages — see [`lib/mdx-site-compile.tsx`](../lib/mdx-site-compile.tsx).
+
 ## Lesson structure
 
 - Files: `content/offerings/<offeringSlug>/<moduleSlug>/<lessonSlug>.mdx`
@@ -64,7 +74,7 @@ If the offering should have a public brochure page, set **`visibility`** accordi
 
 ## Slug rules
 
-Slugs for offerings, modules, and lessons must satisfy [`isSafeSlug`](../lib/slug.ts) / `assertSafeSlug`: practical constraint is lowercase URL-safe segments (letters, digits, hyphens) consistent with route params and file paths. Invalid slugs yield validation errors at load time or `notFound()` in routes.
+Slugs for offerings, modules, and lessons must satisfy [`isSafeSlug`](../lib/slug.ts) / `assertSafeSlug`: practical constraint is lowercase URL-safe segments (letters, digits, hyphens) consistent with route params and file paths. Invalid slugs yield validation errors at load time or `notFound()` in routes. **Site** page slugs (except the logical name **`index`**) follow the same rule.
 
 **Reserved segment:** **`search`** — `/offerings/[offeringSlug]/search` is the lesson search page ([Architecture — Search](./architecture.md#search)), so **`search`** must not be used as a lesson slug.
 

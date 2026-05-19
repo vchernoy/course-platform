@@ -1,0 +1,8 @@
+title: Demo site
+visibility: public
+
+navigation:
+  - title: Home
+    page: index
+  - title: About
+    page: about

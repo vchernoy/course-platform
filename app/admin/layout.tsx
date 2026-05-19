@@ -24,6 +24,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             <Link href="/admin/offerings" className="hover:text-zinc-900">
               Offerings
             </Link>
+            <Link href="/admin/sites" className="hover:text-zinc-900">
+              Sites
+            </Link>
             <Link href="/dashboard" className="hover:text-zinc-900">
               Dashboard
             </Link>

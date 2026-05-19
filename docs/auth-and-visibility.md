@@ -1,6 +1,6 @@
 # Auth and visibility
 
-Clerk authentication, `students.yaml` allowlists, route-level protection, and `visibility` on offerings. Related: [Architecture](./architecture.md), [Content layout](./content-layout.md), [MDX authoring](./mdx-authoring.md).
+Clerk authentication, `students.yaml` allowlists, route-level protection, and `visibility` on offerings and sites. Related: [Architecture](./architecture.md), [Content layout](./content-layout.md), [MDX authoring](./mdx-authoring.md).
 
 ## Clerk
 
@@ -40,6 +40,13 @@ No database sync: edit YAML and reload.
 
 ## Route behavior
 
+### `/s/[siteSlug]`, `/s/[siteSlug]/[pageSlug]`
+
+- Not behind Clerk middleware — anonymous requests reach the route handler ([`middleware.ts`](../middleware.ts) does not match `/s/*`).
+- Renders MDX from **`content/sites/`** only when [`isPublicSite`](../lib/sites.ts) is true (`visibility` **`public`** or **`unlisted`** in **`site.yaml`**). **`private`** (or omitted visibility, treated as private) → **404**.
+- **`unlisted`:** page metadata sets **`robots: noindex, nofollow`** (same pattern as `/p`).
+- Phase&nbsp;1 sites use a **minimal** MDX pipeline ([`lib/mdx-site-compile.tsx`](../lib/mdx-site-compile.tsx)); there is **no** site asset API yet — prefer absolute image URLs if needed.
+
 ### `/p/[offeringSlug]`
 
 - Not behind Clerk middleware ([`middleware.ts`](../middleware.ts) excludes `/p/*` from `auth.protect()`).
@@ -69,6 +76,10 @@ No database sync: edit YAML and reload.
 Private slugs are not confirmed via `/p` (404 avoids enumeration signal).
 
 **`published`:** optional boolean, validated; **no runtime effect** today (does not gate `/p`).
+
+## Visibility semantics (`site.yaml`)
+
+**`visibility`** gates **`/s/*`** public routes ([`lib/sites.ts`](../lib/sites.ts)): omitted → **`private`** → **404** on `/s/...`; **`public`** / **`unlisted`** render MDX; **`unlisted`** adds **`robots: noindex, nofollow`** (see Route behavior above).
 
 ## Middleware
 

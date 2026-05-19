@@ -13,6 +13,10 @@ export type AdminEntry = {
   offeringSlugs: string[];
   /** True when config listed "*" as the only offerings pattern. */
   allOfferings: boolean;
+  /** Explicit site slugs when `allSites` is false; omitted in YAML → no site access. */
+  siteSlugs: string[];
+  /** True when config listed "*" as the only `sites` pattern. */
+  allSites: boolean;
 };
 
 export type AdminsConfig = { admins: AdminEntry[] };
@@ -22,6 +26,8 @@ export type AdminAccess = {
   role: AdminRole;
   allOfferings: boolean;
   offeringSlugs: string[];
+  allSites: boolean;
+  siteSlugs: string[];
 };
 
 function prefix(msg: string) {
@@ -70,6 +76,54 @@ function parseOfferingsField(raw: unknown, adminIndex: string): Pick<AdminEntry,
   }
 
   return { allOfferings: false, offeringSlugs: [...new Set(explicit)] };
+}
+
+function parseSitesField(
+  raw: unknown,
+  adminIndex: string
+): Pick<AdminEntry, "siteSlugs" | "allSites"> {
+  if (raw === undefined || raw === null) {
+    return { allSites: false, siteSlugs: [] };
+  }
+  if (!Array.isArray(raw)) {
+    throw new Error(prefix(`${adminIndex}.sites must be an array`));
+  }
+  if (raw.length === 0) {
+    throw new Error(prefix(`${adminIndex}.sites must be non-empty when set`));
+  }
+
+  const explicit: string[] = [];
+  let star = false;
+
+  for (let i = 0; i < raw.length; i++) {
+    const cell = raw[i];
+    if (typeof cell !== "string" || !cell.trim()) {
+      throw new Error(prefix(`${adminIndex}.sites[${i}] must be a non-empty string`));
+    }
+    const token = cell.trim();
+    if (token === "*") {
+      star = true;
+      continue;
+    }
+    if (!isSafeSlug(token)) {
+      throw new Error(
+        prefix(
+          `${adminIndex}.sites[${i}] must be "*" or a valid site slug, got ${JSON.stringify(token)}`
+        )
+      );
+    }
+    explicit.push(token);
+  }
+
+  if (star && explicit.length > 0) {
+    throw new Error(prefix(`${adminIndex}.sites cannot mix "*" with specific site slugs`));
+  }
+
+  if (star) {
+    return { allSites: true, siteSlugs: [] };
+  }
+
+  return { allSites: false, siteSlugs: [...new Set(explicit)] };
 }
 
 /** Validates parsed YAML; throws with a clear message if shape is invalid. */
@@ -126,11 +180,18 @@ export function validateAdminsContent(raw: unknown): AdminsConfig {
 
     const { allOfferings, offeringSlugs } = parseOfferingsField(r.offerings, adminIndex);
 
+    const { allSites, siteSlugs } = parseSitesField(
+      "sites" in r ? r.sites ?? undefined : undefined,
+      adminIndex
+    );
+
     admins.push({
       email: r.email.trim(),
       role,
       offeringSlugs,
       allOfferings,
+      siteSlugs,
+      allSites,
     });
   }
 
@@ -159,6 +220,8 @@ export function getAdminAccessFromConfig(
       role: row.role,
       allOfferings: row.allOfferings,
       offeringSlugs: row.offeringSlugs,
+      allSites: row.allSites,
+      siteSlugs: row.siteSlugs,
     };
   }
   return null;
@@ -193,4 +256,31 @@ export function listAdminAllowedOfferingSlugsFromConfig(
   }
   const allowed = new Set(access.offeringSlugs);
   return allOfferingSlugs.filter((s) => allowed.has(s));
+}
+
+export function canAdminAccessSiteFromConfig(
+  config: AdminsConfig,
+  email: string | undefined,
+  siteSlug: string
+): boolean {
+  const access = getAdminAccessFromConfig(config, email);
+  if (!access) return false;
+  if (!isSafeSlug(siteSlug)) return false;
+  if (access.allSites) return true;
+  return access.siteSlugs.includes(siteSlug);
+}
+
+/** Filters `allSiteSlugs` to those this admin may manage (preserves input order). */
+export function listAdminAllowedSiteSlugsFromConfig(
+  config: AdminsConfig,
+  email: string | undefined,
+  allSiteSlugs: readonly string[]
+): string[] {
+  const access = getAdminAccessFromConfig(config, email);
+  if (!access) return [];
+  if (access.allSites) {
+    return allSiteSlugs.filter((s) => isSafeSlug(s));
+  }
+  const allowed = new Set(access.siteSlugs);
+  return allSiteSlugs.filter((s) => allowed.has(s));
 }

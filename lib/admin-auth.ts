@@ -3,7 +3,9 @@ import {
   getAdminAccessFromConfig,
   loadAdmins,
   canAdminAccessOfferingFromConfig,
+  canAdminAccessSiteFromConfig,
   listAdminAllowedOfferingSlugsFromConfig,
+  listAdminAllowedSiteSlugsFromConfig,
   type AdminAccess,
 } from "@/lib/admins";
 
@@ -34,4 +36,15 @@ export function listAdminAllowedOfferingSlugs(
   allOfferingSlugs: readonly string[]
 ): string[] {
   return listAdminAllowedOfferingSlugsFromConfig(loadAdmins(), email, allOfferingSlugs);
+}
+
+export function canAdminAccessSite(email: string | undefined, siteSlug: string): boolean {
+  return canAdminAccessSiteFromConfig(loadAdmins(), email, siteSlug);
+}
+
+export function listAdminAllowedSiteSlugs(
+  email: string | undefined,
+  allSiteSlugs: readonly string[]
+): string[] {
+  return listAdminAllowedSiteSlugsFromConfig(loadAdmins(), email, allSiteSlugs);
 }

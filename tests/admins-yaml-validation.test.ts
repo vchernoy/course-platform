@@ -2,29 +2,47 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   canAdminAccessOfferingFromConfig,
+  canAdminAccessSiteFromConfig,
   emailIsAdminFromConfig,
   getAdminAccessFromConfig,
   listAdminAllowedOfferingSlugsFromConfig,
+  listAdminAllowedSiteSlugsFromConfig,
   validateAdminsContent,
 } from "../lib/admins";
 import type { AdminsConfig } from "../lib/admins";
 
 const sample: AdminsConfig = validateAdminsContent({
   admins: [
-    { email: "owner@example.com", role: "owner", offerings: ["*"] },
+    {
+      email: "owner@example.com",
+      role: "owner",
+      offerings: ["*"],
+      sites: ["*"],
+    },
     {
       email: "Editor@example.com",
       role: "editor",
       offerings: ["investing-basics-2026-05", "investing-basics-2026-05"],
+      sites: ["demo-site"],
     },
-    { email: "assistant@example.com", role: "viewer", offerings: ["roth-ira-webinar-2026-04"] },
+    {
+      email: "assistant@example.com",
+      role: "viewer",
+      offerings: ["roth-ira-webinar-2026-04"],
+    },
   ],
 });
 
 describe("getAdminAccessFromConfig", () => {
-  it("resolves owner with wildcard", () => {
+  it("resolves owner with wildcard offerings and sites", () => {
     const a = getAdminAccessFromConfig(sample, "owner@example.com");
-    assert.deepEqual(a, { role: "owner", allOfferings: true, offeringSlugs: [] });
+    assert.deepEqual(a, {
+      role: "owner",
+      allOfferings: true,
+      offeringSlugs: [],
+      allSites: true,
+      siteSlugs: [],
+    });
   });
 
   it("dedupes explicit offering slugs", () => {
@@ -33,6 +51,19 @@ describe("getAdminAccessFromConfig", () => {
       role: "editor",
       allOfferings: false,
       offeringSlugs: ["investing-basics-2026-05"],
+      allSites: false,
+      siteSlugs: ["demo-site"],
+    });
+  });
+
+  it("omitted sites means no site scope", () => {
+    const a = getAdminAccessFromConfig(sample, "assistant@example.com");
+    assert.deepEqual(a, {
+      role: "viewer",
+      allOfferings: false,
+      offeringSlugs: ["roth-ira-webinar-2026-04"],
+      allSites: false,
+      siteSlugs: [],
     });
   });
 
@@ -69,6 +100,25 @@ describe("canAdminAccessOfferingFromConfig", () => {
   });
 });
 
+describe("canAdminAccessSiteFromConfig", () => {
+  it("allows wildcard sites admin", () => {
+    assert.equal(canAdminAccessSiteFromConfig(sample, "owner@example.com", "any-site-slug"), true);
+  });
+
+  it("allows scoped sites admin listed slug only", () => {
+    assert.equal(canAdminAccessSiteFromConfig(sample, "editor@example.com", "demo-site"), true);
+    assert.equal(canAdminAccessSiteFromConfig(sample, "editor@example.com", "other-site"), false);
+  });
+
+  it("denies when sites omitted on admin row", () => {
+    assert.equal(canAdminAccessSiteFromConfig(sample, "assistant@example.com", "demo-site"), false);
+  });
+
+  it("denies invalid site slug param", () => {
+    assert.equal(canAdminAccessSiteFromConfig(sample, "owner@example.com", "../evil"), false);
+  });
+});
+
 describe("listAdminAllowedOfferingSlugsFromConfig", () => {
   it("returns full ordered list for wildcard", () => {
     assert.deepEqual(
@@ -98,12 +148,37 @@ describe("listAdminAllowedOfferingSlugsFromConfig", () => {
   });
 });
 
+describe("listAdminAllowedSiteSlugsFromConfig", () => {
+  it("returns full ordered list for wildcard sites", () => {
+    assert.deepEqual(
+      listAdminAllowedSiteSlugsFromConfig(sample, "owner@example.com", ["z-site", "a-site"]),
+      ["z-site", "a-site"]
+    );
+  });
+
+  it("filters for scoped sites admin", () => {
+    assert.deepEqual(
+      listAdminAllowedSiteSlugsFromConfig(sample, "editor@example.com", ["demo-site", "other"]),
+      ["demo-site"]
+    );
+  });
+
+  it("returns empty when admin has no sites scope", () => {
+    assert.deepEqual(
+      listAdminAllowedSiteSlugsFromConfig(sample, "assistant@example.com", ["demo-site"]),
+      []
+    );
+  });
+});
+
 describe("validateAdminsContent", () => {
   it("accepts minimal valid config", () => {
     const cfg = validateAdminsContent({
       admins: [{ email: "a@example.com", role: "viewer", offerings: ["some-slug"] }],
     });
     assert.equal(cfg.admins.length, 1);
+    assert.equal(cfg.admins[0]!.allSites, false);
+    assert.deepEqual(cfg.admins[0]!.siteSlugs, []);
   });
 
   it("rejects invalid role", () => {
@@ -126,7 +201,7 @@ describe("validateAdminsContent", () => {
     );
   });
 
-  it("rejects mix of star and slugs", () => {
+  it("rejects mix of star and slugs in offerings", () => {
     assert.throws(
       () =>
         validateAdminsContent({
@@ -156,6 +231,36 @@ describe("validateAdminsContent", () => {
           admins: [{ email: "a@example.com", role: "viewer", offerings: ["BAD"] }],
         }),
       /valid offering slug/
+    );
+  });
+
+  it("rejects empty sites when key is set", () => {
+    assert.throws(
+      () =>
+        validateAdminsContent({
+          admins: [{ email: "a@example.com", role: "viewer", offerings: ["x"], sites: [] }],
+        }),
+      /sites must be non-empty/
+    );
+  });
+
+  it("rejects mix of star and slugs in sites", () => {
+    assert.throws(
+      () =>
+        validateAdminsContent({
+          admins: [{ email: "a@example.com", role: "viewer", offerings: ["x"], sites: ["*", "y"] }],
+        }),
+      /sites cannot mix/
+    );
+  });
+
+  it("rejects invalid site slug entry", () => {
+    assert.throws(
+      () =>
+        validateAdminsContent({
+          admins: [{ email: "a@example.com", role: "viewer", offerings: ["x"], sites: ["BAD_SLUG"] }],
+        }),
+      /valid site slug/
     );
   });
 });

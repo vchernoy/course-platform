@@ -63,9 +63,14 @@ The **`format`** field (`course`, `webinar`, `workshop`, `mini-course`) is metad
 | Prefix | Auth | Content |
 |--------|------|---------|
 | `/p/[offeringSlug]` | None | YAML-derived landing only (syllabus titles); no lesson MDX |
+| `/s/[siteSlug]`, `/s/[siteSlug]/[pageSlug]` | None | Simple site pages from `content/sites/` when `site.yaml` `visibility` is `public` or `unlisted`; **`private`** → **404** |
 | `/dashboard`, `/offerings/*` | Clerk + [`students.yaml`](../config/students.yaml) | Portal UI, lesson MDX, sidebar |
 
 See [Auth and visibility](./auth-and-visibility.md) for middleware, `visibility`, and failure modes (404/403).
+
+## Sites (phase 1)
+
+A **site** is a directory under **`content/sites/<siteSlug>/`** with **`site.yaml`** and **`pages/*.mdx`** (home is **`pages/index.mdx`** → **`/s/<siteSlug>`**). Validated and loaded by [`lib/sites.ts`](../lib/sites.ts). Public MDX uses a **minimal** compile helper [`lib/mdx-site-compile.tsx`](../lib/mdx-site-compile.tsx) (markdown, math, callouts/details — no lesson-only components or site assets API yet). Admin read-only UI: **`/admin/sites`**, **`/admin/sites/[siteSlug]`**, gated by optional **`sites`** rows in [`config/admins.yaml`](../config/admins.yaml).
 
 ## Search
 
@@ -80,8 +85,8 @@ The reserved URL segment **`search`** is documented with slug rules in [Content 
 
 ## Admin authoring (scaffolding)
 
-- **Routes:** **`/admin`**, **`/admin/offerings`**, **`/admin/offerings/[offeringSlug]`**, **`/admin/offerings/[offeringSlug]/lessons/[lessonSlug]/preview`** ([`app/admin/`](../app/admin/)).
-- **Auth:** Clerk (middleware) plus **[`config/admins.yaml`](../config/admins.yaml)** — offering-scoped **`owner`** \| **`editor`** \| **`viewer`** rows; helpers in [`lib/admin-auth.ts`](../lib/admin-auth.ts) / [`lib/admins.ts`](../lib/admins.ts). **`"*"`** in `offerings` means all offerings (typical for owners).
+- **Routes:** **`/admin`**, **`/admin/offerings`**, **`/admin/offerings/[offeringSlug]`**, **`/admin/offerings/[offeringSlug]/lessons/[lessonSlug]/preview`**, **`/admin/sites`**, **`/admin/sites/[siteSlug]`** ([`app/admin/`](../app/admin/)).
+- **Auth:** Clerk (middleware) plus **[`config/admins.yaml`](../config/admins.yaml)** — offering-scoped **`owner`** \| **`editor`** \| **`viewer`** rows and optional **site-scoped** **`sites`** (omit → no site admin access); helpers in [`lib/admin-auth.ts`](../lib/admin-auth.ts) / [`lib/admins.ts`](../lib/admins.ts). **`"*"`** in `offerings` or `sites` means all entries of that kind (typical for owners).
 - **Content access:** [`ContentRepository`](../lib/content-repository/types.ts) + [`GitContentRepository`](../lib/content-repository/git-content-repository.ts) wrap [`lib/offerings.ts`](../lib/offerings.ts) for admin reads; learner lesson routes still load sources via `offerings` directly.
 - **Lesson MDX compile:** shared helper [`lib/mdx-lesson-compile.tsx`](../lib/mdx-lesson-compile.tsx) (`compileLessonMdxContent`) keeps learner and admin preview on the same remark/rehype + component map; admin-only HTML serialization lives in [`lib/mdx-lesson-preview-serialize.tsx`](../lib/mdx-lesson-preview-serialize.tsx) (temporary skeleton — [Admin authoring](./admin-authoring.md)).
 
@@ -89,10 +94,12 @@ Full roadmap (preview pipeline, Git publishing, future DB/repo backends): [Admin
 
 ## MDX rendering
 
-- Lessons are loaded from disk as strings and compiled through [`compileLessonMdxContent`](../lib/mdx-lesson-compile.tsx) ([`next-mdx-remote/rsc`](https://github.com/hashicorp/next-mdx-remote)) from [`app/offerings/[offeringSlug]/[lessonSlug]/page.tsx`](../app/offerings/%5BofferingSlug%5D/%5BlessonSlug%5D/page.tsx).
-- `remark-directive`, custom callout/details handling, `remark-math`, and `rehype-katex` run in the compile pipeline.
+- **Offerings:** Lessons are loaded from disk as strings and compiled through [`compileLessonMdxContent`](../lib/mdx-lesson-compile.tsx) ([`next-mdx-remote/rsc`](https://github.com/hashicorp/next-mdx-remote)) from [`app/offerings/[offeringSlug]/[lessonSlug]/page.tsx`](../app/offerings/%5BofferingSlug%5D/%5BlessonSlug%5D/page.tsx).
+- **Sites:** Pages use [`compileSitePageMdx`](../lib/mdx-site-compile.tsx) from [`app/s/[siteSlug]/page.tsx`](../app/s/%5BsiteSlug%5D/page.tsx) (restricted component map; phase&nbsp;1 — no `CourseImage`, videos, quizzes, or asset pipeline).
+- `remark-directive`, custom callout/details handling, `remark-math`, and `rehype-katex` run in **both** lesson and site compile pipelines (sites use a smaller component map — see [`lib/mdx-site-compile.tsx`](../lib/mdx-site-compile.tsx)).
 - **rehype-slug** assigns heading `id`s; **rehype-autolink-headings** adds hover permalinks on **`h2`** and **`h3`** only (`h1` keeps `id`, no permalink chip).
-- Markdown links use [`MdxAnchor`](../components/mdx/MdxAnchor.tsx) to resolve `lesson:` / `offering:` pseudo-URLs (including optional `#fragment`); see [MDX authoring](./mdx-authoring.md).
+- **Lessons:** Markdown links use [`MdxAnchor`](../components/mdx/MdxAnchor.tsx) to resolve `lesson:` / `offering:` pseudo-URLs (including optional `#fragment`); see [MDX authoring](./mdx-authoring.md).
+- **Sites:** Plain Markdown links only in phase&nbsp;1 (no `lesson:` / `offering:` resolver on `/s/*`).
 - KaTeX CSS is loaded from the root layout.
 
 Author-facing detail: [MDX authoring](./mdx-authoring.md).

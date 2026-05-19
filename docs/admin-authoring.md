@@ -1,6 +1,6 @@
 # Admin authoring (preview + Git-backed publishing)
 
-This document describes the **intended** admin authoring architecture. Today the app ships scaffolding: [`/admin`](../app/admin/layout.tsx), [`config/admins.yaml`](../config/admins.yaml), [`lib/content-repository/`](../lib/content-repository/), YAML-driven **offering-scoped** admin roles, shared lesson compilation in [`lib/mdx-lesson-compile.tsx`](../lib/mdx-lesson-compile.tsx), and a **non-persistent** lesson preview at **`/admin/offerings/[slug]/lessons/[lessonSlug]/preview`**. No draft persistence, Git writes, browser editor (Monaco/TipTap), or database yet.
+This document describes the **intended** admin authoring architecture. Today the app ships scaffolding: [`/admin`](../app/admin/layout.tsx), [`config/admins.yaml`](../config/admins.yaml), [`lib/content-repository/`](../lib/content-repository/), YAML-driven **offering-scoped** admin roles plus optional **site-scoped** **`sites`**, shared lesson compilation in [`lib/mdx-lesson-compile.tsx`](../lib/mdx-lesson-compile.tsx), read-only **sites** lists under **`/admin/sites`**, and a **non-persistent** lesson preview at **`/admin/offerings/[slug]/lessons/[lessonSlug]/preview`**. No draft persistence, Git writes, browser editor (Monaco/TipTap), or database yet.
 
 Related: [Architecture](./architecture.md), [Auth and visibility](./auth-and-visibility.md), [Content layout](./content-layout.md).
 
@@ -11,13 +11,16 @@ Admins are configured in **[`config/admins.yaml`](../config/admins.yaml)** (Git-
 - **`email`** — matched case-insensitively (same normalization as [`students.yaml`](./auth-and-visibility.md)).
 - **`role`** — `owner` \| `editor` \| `viewer` (validated at load time; reserved for future permission differences).
 - **`offerings`** — non-empty array; each entry is **`"`*`"`** (all offerings on the platform) **or** a safe offering slug under `content/offerings/`. Mixing **`*`** with specific slugs is **not** allowed.
+- **`sites`** (optional) — when **omitted**, this admin has **no** site admin access. When present: non-empty array; each entry is **`"`*`"`** (all sites under `content/sites/`) **or** a safe site slug. Mixing **`*`** with specific site slugs is **not** allowed.
 
 Helpers live in [`lib/admins.ts`](../lib/admins.ts) (pure + config) and [`lib/admin-auth.ts`](../lib/admin-auth.ts) (loads YAML):
 
 - `emailIsAdmin` / `canAccessAdmin` — any configured admin row.
-- `getAdminAccess` — role + scope (`allOfferings` vs explicit slug list).
-- `canAdminAccessOffering(email, offeringSlug)` — gate `/admin/offerings/[slug]`.
-- `listAdminAllowedOfferingSlugs(email, allOfferingSlugs)` — drives `/admin/offerings`.
+- `getAdminAccess` — role + scopes (`allOfferings` / `allSites` vs explicit slug lists).
+- `canAdminAccessOffering(email, offeringSlug)` — gate **`/admin/offerings/[slug]`**.
+- `listAdminAllowedOfferingSlugs(email, allOfferingSlugs)` — drives **`/admin/offerings`**.
+- `canAdminAccessSite(email, siteSlug)` — gate **`/admin/sites/[siteSlug]`**.
+- `listAdminAllowedSiteSlugs(email, allSiteSlugs)` — drives **`/admin/sites`**.
 
 An admin with **`offerings: ["*"]`** sees **every** offering returned by [`listOfferingSlugs`](../lib/offerings.ts) (typical for **owner**). Scoped rows only see listed slugs.
 
