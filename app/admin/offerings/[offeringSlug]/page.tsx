@@ -130,9 +130,17 @@ export default async function AdminOfferingDetailPage({ params }: Props) {
               <p className="text-xs text-zinc-500">{mod.slug}</p>
               <ul className="mt-3 space-y-2 border-l border-zinc-200 pl-4">
                 {mod.lessons.map((les) => (
-                  <li key={les.slug} className="text-sm text-zinc-700">
-                    <span className="font-medium text-zinc-900">{les.title}</span>
-                    <span className="text-zinc-400"> · {les.slug}</span>
+                  <li key={les.slug} className="flex flex-wrap items-baseline justify-between gap-2 text-sm text-zinc-700">
+                    <span>
+                      <span className="font-medium text-zinc-900">{les.title}</span>
+                      <span className="text-zinc-400"> · {les.slug}</span>
+                    </span>
+                    <Link
+                      href={`/admin/offerings/${offeringSlug}/lessons/${les.slug}/preview`}
+                      className="text-xs font-medium text-zinc-600 underline-offset-2 hover:text-zinc-900 hover:underline"
+                    >
+                      Preview
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -153,7 +161,13 @@ export default async function AdminOfferingDetailPage({ params }: Props) {
         </div>
         <div className={placeholderCard}>
           <p className="font-medium text-zinc-800">Preview</p>
-          <p className="mt-1">In-memory MDX compile + same pipeline as lessons (not implemented).</p>
+          <p className="mt-1">
+            Skeleton: per-lesson MDX preview at{" "}
+            <code className="rounded bg-zinc-100 px-1 text-xs">
+              /admin/offerings/…/lessons/…/preview
+            </code>{" "}
+            (temporary HTML serialization; full-fidelity preview planned — see docs/admin-authoring.md).
+          </p>
         </div>
       </section>
     </main>

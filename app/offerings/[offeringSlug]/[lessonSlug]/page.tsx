@@ -1,29 +1,11 @@
-import { compileMDX } from "next-mdx-remote/rsc";
 import type { Metadata } from "next";
 import type { ImgHTMLAttributes } from "react";
 import { notFound } from "next/navigation";
-import rehypeAutolinkHeadings from "rehype-autolink-headings";
-import rehypeKatex from "rehype-katex";
-import rehypeSlug from "rehype-slug";
-import remarkDirective from "remark-directive";
-import remarkMath from "remark-math";
-import { Anchor } from "@/components/mdx/Anchor";
-import { AnchorBlock } from "@/components/mdx/AnchorBlock";
-import { Callout } from "@/components/mdx/Callout";
-import { CompoundInterestCalculator } from "@/components/mdx/CompoundInterestCalculator";
-import { CourseImage } from "@/components/mdx/CourseImage";
-import { Details } from "@/components/mdx/Details";
-import { DownloadFile } from "@/components/mdx/DownloadFile";
-import { createMdxAnchor } from "@/components/mdx/MdxAnchor";
-import { createOfferingResourceLink } from "@/components/mdx/ResourceLink";
-import { Quiz } from "@/components/mdx/Quiz";
-import { createLessonVideoPlayer } from "@/components/mdx/VideoPlayer";
 import { LessonPager } from "@/components/course/LessonPager";
 import { LessonTableOfContents } from "@/components/course/LessonTableOfContents";
 import { PortalBreadcrumbs } from "@/components/portal/PortalBreadcrumbs";
-import { rewriteLessonAssetUrls } from "@/lib/offering-assets";
-import { remarkCalloutDirectives } from "@/lib/mdx-callouts";
 import { extractLessonTocItems, type LessonTocItem } from "@/lib/mdx-lesson-toc";
+import { compileLessonMdxContent, prepareLessonMdxSource } from "@/lib/mdx-lesson-compile";
 import { loadOfferingResources } from "@/lib/offering-resources";
 import { loadOfferingVideos } from "@/lib/offering-videos";
 import {
@@ -95,10 +77,7 @@ export default async function LessonPage({ params }: Props) {
     notFound();
   }
 
-  const VideoPlayerMdx = createLessonVideoPlayer(videos);
-  const ResourceLinkMdx = createOfferingResourceLink(resources, offeringSlug);
-
-  const mdxSource = rewriteLessonAssetUrls(source, offeringSlug);
+  const mdxSource = prepareLessonMdxSource(source, offeringSlug);
 
   let tocItems: LessonTocItem[] = [];
   try {
@@ -107,57 +86,11 @@ export default async function LessonPage({ params }: Props) {
     tocItems = [];
   }
 
-  const LessonMdxAnchor = createMdxAnchor(offeringSlug);
-
-  const { content } = await compileMDX({
-    source: mdxSource,
-    options: {
-      mdxOptions: {
-        remarkPlugins: [remarkDirective, remarkCalloutDirectives, remarkMath],
-        rehypePlugins: [
-          rehypeKatex,
-          rehypeSlug,
-          [
-            rehypeAutolinkHeadings,
-            {
-              behavior: "prepend",
-              test: ["h2", "h3"],
-              properties: {
-                className: ["heading-permalink"],
-              },
-            },
-          ],
-        ],
-      },
-    },
-    components: {
-      Anchor,
-      AnchorBlock,
-      Callout,
-      CompoundInterestCalculator,
-      CourseImage: (props: { src?: string; alt?: string; className?: string }) => (
-        <CourseImage
-          courseSlug={offeringSlug}
-          src={props.src ?? ""}
-          alt={props.alt ?? ""}
-          className={props.className}
-        />
-      ),
-      Details,
-      img: (props: ImgHTMLAttributes<HTMLImageElement>) => (
-        <CourseImage
-          courseSlug={offeringSlug}
-          src={typeof props.src === "string" ? props.src : ""}
-          alt={props.alt ?? ""}
-          className={props.className}
-        />
-      ),
-      VideoPlayer: VideoPlayerMdx,
-      ResourceLink: ResourceLinkMdx,
-      DownloadFile,
-      Quiz,
-      a: LessonMdxAnchor,
-    },
+  const content = await compileLessonMdxContent({
+    offeringSlug,
+    source,
+    videos,
+    resources,
   });
 
   const { prev, next } = getLessonNeighbors(offering, lessonSlug);

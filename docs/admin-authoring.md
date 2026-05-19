@@ -1,6 +1,6 @@
 # Admin authoring (preview + Git-backed publishing)
 
-This document describes the **intended** admin authoring architecture. Today the app ships **read-only** scaffolding: [`/admin`](../app/admin/layout.tsx), [`config/admins.yaml`](../config/admins.yaml), [`lib/content-repository/`](../lib/content-repository/), and YAML-driven **offering-scoped** admin roles. No browser editor, Git writes, database, or draft persistence yet.
+This document describes the **intended** admin authoring architecture. Today the app ships scaffolding: [`/admin`](../app/admin/layout.tsx), [`config/admins.yaml`](../config/admins.yaml), [`lib/content-repository/`](../lib/content-repository/), YAML-driven **offering-scoped** admin roles, shared lesson compilation in [`lib/mdx-lesson-compile.tsx`](../lib/mdx-lesson-compile.tsx), and a **non-persistent** lesson preview at **`/admin/offerings/[slug]/lessons/[lessonSlug]/preview`**. No draft persistence, Git writes, browser editor (Monaco/TipTap), or database yet.
 
 Related: [Architecture](./architecture.md), [Auth and visibility](./auth-and-visibility.md), [Content layout](./content-layout.md).
 
@@ -25,6 +25,30 @@ An admin with **`offerings: ["*"]`** sees **every** offering returned by [`listO
 
 **Multi-tenant future:** Today there is a single YAML file and one content tree. Later, **tenant id** can select which repo / DB / bucket backs a `ContentRepository` without changing lesson URLs.
 
+## Draft vs published vs preview (today)
+
+| Kind | Storage | Notes |
+|------|---------|--------|
+| **Published lessons** | Git / filesystem (`content/offerings/…/*.mdx`) | Source of truth for learners after deploy. |
+| **Draft / unsaved edits** | None persisted yet | Preview uses an in-memory MDX string only (textarea state + server round-trip). |
+| **Future drafts** | Planned: database or workspace store | Holds WIP before publish. |
+| **Future publish** | Planned: Git commit (e.g. GitHub API) | Promotion from draft to repo; deployment unchanged. |
+
+The admin preview route loads **published** source by default (via [`GitContentRepository`](../lib/content-repository/git-content-repository.ts)), lets you edit MDX in the browser **without saving**, and re-renders on **Preview** — nothing writes to `*.mdx`, `offering.yaml`, `videos.yaml`, `resources.yaml`, or Git.
+
+## Preview implementation: skeleton vs final architecture
+
+**Current (temporary skeleton):** submitted MDX is compiled with [`compileLessonMdxContent`](../lib/mdx-lesson-compile.tsx) (same pipeline as learners), then turned into **static HTML** via **`react-dom/server`**’s **`renderToString`** (loaded **dynamically** so Turbopack does not merge `react-dom/server` into the shared lesson compile graph) inside [`lib/mdx-lesson-preview-serialize.tsx`](../lib/mdx-lesson-preview-serialize.tsx). The admin UI injects that HTML with **`dangerouslySetInnerHTML`**. The server action lives in [`lib/admin-preview-lesson-action.ts`](../lib/admin-preview-lesson-action.ts).
+
+**Important limitation:** this is **not** the final preview architecture. **`renderToString` + static HTML injection does not run the normal Next.js / React Client Component hydration path** for interactive lesson blocks (`Quiz`, calculators, etc.). For the HTML skeleton, **`Quiz`** and **`CompoundInterestCalculator`** are replaced by **server-rendered placeholder callouts** so preview does not crash; other client-heavy blocks may still need the same treatment later. Those placeholders **must not** be assumed to match learner behavior until preview is upgraded.
+
+**Final direction:** preview should render MDX through the **normal App Router / RSC (and client boundary) pipeline**, for example:
+
+- a **dedicated preview route** (or parallel route) that server-compiles MDX and streams **live React output** the same way [`app/offerings/…/[lessonSlug]/page.tsx`](../app/offerings/%5BofferingSlug%5D/%5BlessonSlug%5D/page.tsx) does, optionally embedded in an **`iframe`** for isolation; or  
+- another pattern that preserves **client component hydration**, not serialized HTML paste.
+
+Until then, treat admin preview as **layout/content sanity checking**, not authoritative interactive QA.
+
 ## Intended authoring workflow
 
 ```text
@@ -39,7 +63,7 @@ Publish creates Git commit (via GitHub API or trusted worker)
 GitHub push triggers deployment
 ```
 
-**Preview before save/publish:** The preview route will accept **MDX source as data** (string), run the same remark/rehype/component map as [`app/offerings/[offeringSlug]/[lessonSlug]/page.tsx`](../app/offerings/%5BofferingSlug%5D/%5BlessonSlug%5D/page.tsx), and render **without** writing `content/`. That keeps parity between “what you see” and published lessons.
+**Preview before save/publish:** Use the same compile helper as lessons ([`compileLessonMdxContent`](../lib/mdx-lesson-compile.tsx)); today’s admin UI additionally serializes to HTML for display only (see limitations above).
 
 ## Why Git-native publishing
 
