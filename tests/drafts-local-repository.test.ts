@@ -65,7 +65,7 @@ describe("LocalFileDraftRepository", () => {
     return new LocalFileDraftRepository(dir);
   }
 
-  it("saveDraft getDraft deleteDraft roundtrip", () => {
+  it("saveDraft getDraft deleteDraft roundtrip", async () => {
     const r = repo();
     const target = {
       kind: "offeringLesson" as const,
@@ -73,19 +73,19 @@ describe("LocalFileDraftRepository", () => {
       pageOrLessonSlug: "lesson-1",
     };
     const published = "# Published\n";
-    assert.equal(r.getDraft(target, "u@example.org"), null);
-    r.saveDraft(target, "u@example.org", "# Draft\n", published);
-    const got = r.getDraft(target, "u@example.org");
+    assert.equal(await r.getDraft(target, "u@example.org"), null);
+    await r.saveDraft(target, "u@example.org", "# Draft\n", published);
+    const got = await r.getDraft(target, "u@example.org");
     assert.ok(got);
     assert.equal(got!.source.trim(), "# Draft");
     assert.equal(got!.updatedBy, "u@example.org");
     assert.ok(got!.updatedAt.length > 10);
     assert.equal(got!.baseHash, hashPublishedMdxSource(published));
-    r.deleteDraft(target, "u@example.org");
-    assert.equal(r.getDraft(target, "u@example.org"), null);
+    await r.deleteDraft(target, "u@example.org");
+    assert.equal(await r.getDraft(target, "u@example.org"), null);
   });
 
-  it("preserves original baseHash on subsequent saves", () => {
+  it("preserves original baseHash on subsequent saves", async () => {
     const r = repo();
     const target = {
       kind: "offeringLesson" as const,
@@ -94,17 +94,17 @@ describe("LocalFileDraftRepository", () => {
     };
     const pub1 = "# Original\n";
     const h1 = hashPublishedMdxSource(pub1);
-    r.saveDraft(target, "u@example.org", "# D1\n", pub1);
-    assert.equal(r.getDraft(target, "u@example.org")!.baseHash, h1);
-    r.saveDraft(target, "u@example.org", "# D2\n", "# Totally different published\n");
-    assert.equal(r.getDraft(target, "u@example.org")!.baseHash, h1);
-    assert.equal(r.getDraft(target, "u@example.org")!.source.trim(), "# D2");
+    await r.saveDraft(target, "u@example.org", "# D1\n", pub1);
+    assert.equal((await r.getDraft(target, "u@example.org"))!.baseHash, h1);
+    await r.saveDraft(target, "u@example.org", "# D2\n", "# Totally different published\n");
+    assert.equal((await r.getDraft(target, "u@example.org"))!.baseHash, h1);
+    assert.equal((await r.getDraft(target, "u@example.org"))!.source.trim(), "# D2");
   });
 
-  it("rejects invalid parent slug (path traversal / unsafe segments)", () => {
+  it("rejects invalid parent slug (path traversal / unsafe segments)", async () => {
     const r = repo();
-    assert.throws(
-      () =>
+    await assert.rejects(
+      async () =>
         r.saveDraft(
           { kind: "offeringLesson", parentSlug: "..", pageOrLessonSlug: "lesson-1" },
           "u@example.org",
@@ -113,8 +113,8 @@ describe("LocalFileDraftRepository", () => {
         ),
       /Invalid draft parent slug/
     );
-    assert.throws(
-      () =>
+    await assert.rejects(
+      async () =>
         r.saveDraft(
           { kind: "sitePage", parentSlug: "demo-site", pageOrLessonSlug: "../oops" },
           "u@example.org",
@@ -125,29 +125,29 @@ describe("LocalFileDraftRepository", () => {
     );
   });
 
-  it("listDraftsForAdmin finds drafts for this admin only", () => {
+  it("listDraftsForAdmin finds drafts for this admin only", async () => {
     const r = repo();
-    r.saveDraft(
+    await r.saveDraft(
       { kind: "sitePage", parentSlug: "demo-site", pageOrLessonSlug: "about" },
       "alice@example.com",
       "A",
       "pub-a\n"
     );
-    r.saveDraft(
+    await r.saveDraft(
       { kind: "sitePage", parentSlug: "demo-site", pageOrLessonSlug: "index" },
       "bob@example.org",
       "B",
       "pub-b\n"
     );
 
-    const alice = r.listDraftsForAdmin("alice@example.com");
+    const alice = await r.listDraftsForAdmin("alice@example.com");
     assert.equal(alice.length, 1);
     assert.equal(alice[0]!.kind, "sitePage");
     assert.equal(alice[0]!.parentSlug, "demo-site");
     assert.equal(alice[0]!.pageOrLessonSlug, "about");
     assert.equal(alice[0]!.source, "A");
 
-    const bob = r.listDraftsForAdmin("bob@example.org");
+    const bob = await r.listDraftsForAdmin("bob@example.org");
     assert.equal(bob.length, 1);
     assert.equal(bob[0]!.pageOrLessonSlug, "index");
   });
@@ -161,20 +161,20 @@ describe("getDraftStatus", () => {
 
   const target = { kind: "sitePage" as const, parentSlug: "demo-site", pageOrLessonSlug: "about" };
 
-  it("reports stale when published changes after draft base", () => {
+  it("reports stale when published changes after draft base", async () => {
     const r = repo();
     const pub = "# One\n";
-    r.saveDraft(target, "a@b.co", "draft", pub);
-    const stOk = getDraftStatus(target, "a@b.co", pub, r);
+    await r.saveDraft(target, "a@b.co", "draft", pub);
+    const stOk = await getDraftStatus(target, "a@b.co", pub, r);
     assert.equal(stOk.hasDraft, true);
     assert.equal(stOk.isStale, false);
 
-    const stStale = getDraftStatus(target, "a@b.co", "# Two\n", r);
+    const stStale = await getDraftStatus(target, "a@b.co", "# Two\n", r);
     assert.equal(stStale.isStale, true);
     assert.equal(stStale.currentHash, hashPublishedMdxSource("# Two\n"));
   });
 
-  it("treats legacy draft without baseHash as stale", () => {
+  it("treats legacy draft without baseHash as stale", async () => {
     const r = repo();
     const fp = path.join(
       r.draftRoot,
@@ -189,7 +189,7 @@ describe("getDraftStatus", () => {
       "---\nupdatedAt: t\nupdatedBy: a@b.co\n---\n\nlegacy body\n",
       "utf8"
     );
-    const st = getDraftStatus(target, "a@b.co", "# Published\n", r);
+    const st = await getDraftStatus(target, "a@b.co", "# Published\n", r);
     assert.equal(st.hasDraft, true);
     assert.equal(st.isStale, true);
     assert.equal(st.baseHash, null);

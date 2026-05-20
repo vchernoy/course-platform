@@ -18,7 +18,7 @@ Portal chrome: [`PortalHeader`](components/portal/PortalHeader.tsx), [`PortalBre
 | `/` | Home |
 | `/p/[offeringSlug]` | Anonymous if offering is `public` / `unlisted` |
 | `/dashboard` | Signed in |
-| `/admin`<br>`/admin/offerings`<br>`/admin/offerings/[slug]`<br>`/admin/offerings/…/lessons/…/preview`<br>`/admin/offerings/…/lessons/…/edit`<br>`/admin/sites`<br>`/admin/sites/[siteSlug]`<br>`/admin/sites/…/pages/…/edit` | Signed in + [`admins.yaml`](config/admins.yaml) (**offering scopes** and **optional site scopes**); **edit** saves local drafts under `.data/drafts` only ([admin authoring](docs/admin-authoring.md)) |
+| `/admin`<br>`/admin/offerings`<br>`/admin/offerings/[slug]`<br>`/admin/offerings/…/lessons/…/preview`<br>`/admin/offerings/…/lessons/…/edit`<br>`/admin/sites`<br>`/admin/sites/[siteSlug]`<br>`/admin/sites/…/pages/…/edit` | Signed in + [`admins.yaml`](config/admins.yaml) (**offering scopes** and **optional site scopes**); **Save draft** uses **`DRAFT_BACKEND`** (`local` → `.data/drafts`, `blob` → Vercel Blob; see [admin authoring](docs/admin-authoring.md)). **Publish locally** only on writable `content/` (not Vercel serverless). |
 | `/s/[siteSlug]`, `/s/.../[pageSlug]` | Anonymous when site `visibility` is `public` / `unlisted` ([content layout](docs/content-layout.md)) |
 | `/offerings/[offeringSlug]`, `/offerings/.../[lessonSlug]` | Signed in + [`students.yaml`](config/students.yaml) |
 | `/sign-in`, `/sign-up` | Clerk |
@@ -62,5 +62,5 @@ Open [http://localhost:3000](http://localhost:3000). In dev, offering footers ma
 - Auth: Clerk + local YAML (`students.yaml` for learners, `admins.yaml` for read-only admin UI — **offering scopes** per row and **optional site scopes**).
 - Filesystem-backed marketing/simple **sites** at **`/s/...`** (`content/sites/`); admin listing under **`/admin/sites`**.
 - Offering-scoped lesson search under `/offerings/.../search`.
-- No payments (Stripe), Telegram, or durable DB/Git-backed drafts yet; **Phase 3A** stores **local filesystem drafts** under `.data/drafts` for dev/self-hosted admin editing ([admin authoring](docs/admin-authoring.md)).
+- No payments (Stripe), Telegram, or durable Git-backed drafts yet; **Phase 3A–3B** support **Save draft** via **`DRAFT_BACKEND`** (`local` filesystem under `.data/drafts`, or **`blob`** with **Vercel Blob** on production). **Publish locally** remains filesystem-only under `content/` (blocked on Vercel — future GitHub publish) ([admin authoring](docs/admin-authoring.md)).
 - `published` in `offering.yaml` is metadata-only at runtime.

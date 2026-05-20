@@ -35,3 +35,4 @@ yarn-error.log*
 
 # local admin drafts (Phase 3A; dev / self-hosted — not for durable serverless disk)
 /.data/
+.vercel

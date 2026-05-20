@@ -27,19 +27,19 @@ describe("assertWritablePublishedMdxPath", () => {
 });
 
 describe("tryPublishLocalDraft", () => {
-  function withTempProject(fn: () => void) {
+  async function withTempProject(fn: () => void | Promise<void>) {
     const prev = process.cwd();
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "publish-local-"));
     process.chdir(root);
     try {
-      fn();
+      await Promise.resolve(fn());
     } finally {
       process.chdir(prev);
     }
   }
 
-  it("returns error when draft missing", () => {
-    const r = tryPublishLocalDraft({
+  it("returns error when draft missing", async () => {
+    const r = await tryPublishLocalDraft({
       draft: null,
       publishedSource: "x",
       publishedFilePath: "/nope",
@@ -49,8 +49,8 @@ describe("tryPublishLocalDraft", () => {
     if (!r.ok) assert.match(r.error, /No draft/);
   });
 
-  it("returns error when draft missing baseHash", () => {
-    const r = tryPublishLocalDraft({
+  it("returns error when draft missing baseHash", async () => {
+    const r = await tryPublishLocalDraft({
       draft: {
         source: "new",
         updatedAt: "t",
@@ -65,8 +65,8 @@ describe("tryPublishLocalDraft", () => {
     if (!r.ok) assert.match(r.error, /base hash/);
   });
 
-  it("refuses publish on hash mismatch without writing", () => {
-    withTempProject(() => {
+  it("refuses publish on hash mismatch without writing", async () => {
+    await withTempProject(async () => {
       fs.mkdirSync(path.join("content", "offerings", "o", "m"), { recursive: true });
       const p = path.join(process.cwd(), "content", "offerings", "o", "m", "l.mdx");
       fs.writeFileSync(p, "# B\n", "utf8");
@@ -77,7 +77,7 @@ describe("tryPublishLocalDraft", () => {
         updatedBy: "u",
         baseHash: hashPublishedMdxSource("# A\n"),
       };
-      const result = tryPublishLocalDraft({
+      const result = await tryPublishLocalDraft({
         draft,
         publishedSource: fs.readFileSync(p, "utf8"),
         publishedFilePath: p,
@@ -92,8 +92,8 @@ describe("tryPublishLocalDraft", () => {
     });
   });
 
-  it("overwrites published file and deletes draft on success", () => {
-    withTempProject(() => {
+  it("overwrites published file and deletes draft on success", async () => {
+    await withTempProject(async () => {
       fs.mkdirSync(path.join("content", "sites", "s", "pages"), { recursive: true });
       const p = path.join(process.cwd(), "content", "sites", "s", "pages", "about.mdx");
       const published = "# Original\n";
@@ -106,11 +106,11 @@ describe("tryPublishLocalDraft", () => {
         updatedBy: "u",
         baseHash,
       };
-      const result = tryPublishLocalDraft({
+      const result = await tryPublishLocalDraft({
         draft,
         publishedSource: fs.readFileSync(p, "utf8"),
         publishedFilePath: p,
-        onDeleteDraft: () => {
+        onDeleteDraft: async () => {
           deleted = true;
         },
       });

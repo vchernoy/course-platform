@@ -1,4 +1,4 @@
-/** Target for a locally stored MDX draft (Phase 3A: filesystem only). */
+/** Target for a stored MDX draft (filesystem or blob backend). */
 export type DraftTarget =
   | { kind: "offeringLesson"; parentSlug: string; pageOrLessonSlug: string }
   | { kind: "sitePage"; parentSlug: string; pageOrLessonSlug: string };
@@ -16,9 +16,9 @@ export type DraftStored = {
 export type DraftRecord = DraftTarget & DraftStored;
 
 export interface DraftRepository {
-  getDraft(target: DraftTarget, adminEmail: string): DraftStored | null;
+  getDraft(target: DraftTarget, adminEmail: string): Promise<DraftStored | null>;
   /** New drafts record {@link hashPublishedMdxSource}(publishedSourceBody); existing drafts keep original baseHash. */
-  saveDraft(target: DraftTarget, adminEmail: string, source: string, publishedSourceBody: string): void;
-  deleteDraft(target: DraftTarget, adminEmail: string): void;
-  listDraftsForAdmin(adminEmail: string): DraftRecord[];
+  saveDraft(target: DraftTarget, adminEmail: string, source: string, publishedSourceBody: string): Promise<void>;
+  deleteDraft(target: DraftTarget, adminEmail: string): Promise<void>;
+  listDraftsForAdmin(adminEmail: string): Promise<DraftRecord[]>;
 }

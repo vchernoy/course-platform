@@ -3,9 +3,14 @@
 import { forbidden } from "next/navigation";
 import { canAdminAccessOffering } from "@/lib/admin-auth";
 import { getCurrentUserEmail } from "@/lib/authz";
-import { getLocalFileDraftRepository, tryPublishLocalDraft } from "@/lib/drafts";
+import {
+  LOCAL_PUBLISH_BLOCKED_ON_VERCEL_MESSAGE,
+  isVercelDeployment,
+  vercelFilesystemDraftMutationBlockedReason,
+} from "@/lib/drafts/deployment-policy";
+import { createDraftRepository, tryPublishLocalDraft } from "@/lib/drafts";
 import type { DraftMutationResult } from "@/lib/draft-action-result";
-import type { DraftTarget } from "@/lib/drafts/types";
+import type { DraftRepository, DraftTarget } from "@/lib/drafts/types";
 import {
   findLessonMeta,
   getLessonFilePath,
@@ -14,11 +19,27 @@ import {
 } from "@/lib/offerings";
 import { isSafeSlug } from "@/lib/slug";
 
+type DraftRepoInit =
+  | { kind: "ok"; repo: DraftRepository }
+  | { kind: "err"; error: string };
+
+function initDraftRepo(): DraftRepoInit {
+  try {
+    return { kind: "ok", repo: createDraftRepository() };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return { kind: "err", error: msg };
+  }
+}
+
 export async function saveLessonDraftAction(
   offeringSlug: string,
   lessonSlug: string,
   source: string
 ): Promise<DraftMutationResult> {
+  const blocked = vercelFilesystemDraftMutationBlockedReason();
+  if (blocked) return { ok: false, error: blocked };
+
   const email = await getCurrentUserEmail();
   if (!email || !canAdminAccessOffering(email, offeringSlug)) {
     forbidden();
@@ -53,8 +74,11 @@ export async function saveLessonDraftAction(
     pageOrLessonSlug: lessonSlug,
   };
 
+  const init = initDraftRepo();
+  if (init.kind === "err") return { ok: false, error: init.error };
+
   try {
-    getLocalFileDraftRepository().saveDraft(target, email, source, publishedSource);
+    await init.repo.saveDraft(target, email, source, publishedSource);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     return { ok: false, error: msg };
@@ -67,6 +91,10 @@ export async function publishLessonDraftLocally(
   offeringSlug: string,
   lessonSlug: string
 ): Promise<DraftMutationResult> {
+  if (isVercelDeployment()) {
+    return { ok: false, error: LOCAL_PUBLISH_BLOCKED_ON_VERCEL_MESSAGE };
+  }
+
   const email = await getCurrentUserEmail();
   if (!email || !canAdminAccessOffering(email, offeringSlug)) {
     forbidden();
@@ -101,8 +129,11 @@ export async function publishLessonDraftLocally(
     pageOrLessonSlug: lessonSlug,
   };
 
-  const repo = getLocalFileDraftRepository();
-  const draft = repo.getDraft(target, email);
+  const init = initDraftRepo();
+  if (init.kind === "err") return { ok: false, error: init.error };
+  const { repo } = init;
+
+  const draft = await repo.getDraft(target, email);
   const publishedFilePath = getLessonFilePath(offeringSlug, hit.moduleSlug, lessonSlug);
 
   return tryPublishLocalDraft({
@@ -117,6 +148,9 @@ export async function discardLessonDraftAction(
   offeringSlug: string,
   lessonSlug: string
 ): Promise<DraftMutationResult> {
+  const blocked = vercelFilesystemDraftMutationBlockedReason();
+  if (blocked) return { ok: false, error: blocked };
+
   const email = await getCurrentUserEmail();
   if (!email || !canAdminAccessOffering(email, offeringSlug)) {
     forbidden();
@@ -143,8 +177,11 @@ export async function discardLessonDraftAction(
     pageOrLessonSlug: lessonSlug,
   };
 
+  const init = initDraftRepo();
+  if (init.kind === "err") return { ok: false, error: init.error };
+
   try {
-    getLocalFileDraftRepository().deleteDraft(target, email);
+    await init.repo.deleteDraft(target, email);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     return { ok: false, error: msg };

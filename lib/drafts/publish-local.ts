@@ -24,12 +24,12 @@ export function assertWritablePublishedMdxPath(filePath: string): void {
  * Server-side source of truth for local publish: reload draft + published source in the action,
  * then call this with those values. Never trust client-only stale flags.
  */
-export function tryPublishLocalDraft(params: {
+export async function tryPublishLocalDraft(params: {
   draft: DraftStored | null;
   publishedSource: string;
   publishedFilePath: string;
-  onDeleteDraft: () => void;
-}): DraftMutationResult {
+  onDeleteDraft: () => void | Promise<void>;
+}): Promise<DraftMutationResult> {
   const { draft, publishedSource, publishedFilePath, onDeleteDraft } = params;
 
   if (!draft) {
@@ -52,7 +52,7 @@ export function tryPublishLocalDraft(params: {
   try {
     assertWritablePublishedMdxPath(publishedFilePath);
     fs.writeFileSync(publishedFilePath, draft.source, "utf8");
-    onDeleteDraft();
+    await Promise.resolve(onDeleteDraft());
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     return { ok: false, error: msg };

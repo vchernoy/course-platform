@@ -1,6 +1,6 @@
 # Admin authoring (preview, local drafts, Git-backed publishing)
 
-This document describes the **admin authoring architecture**. The app ships: [`/admin`](../app/admin/layout.tsx), [`config/admins.yaml`](../config/admins.yaml), [`lib/content-repository/`](../lib/content-repository/), YAML-driven **offering-scoped** admin roles plus optional **site-scoped** **`sites`**, shared lesson and site MDX compilation, **sites** admin UI, **lesson/site preview**, **local drafts** under **`.data/drafts/`** (with **`baseHash`** metadata), and **Phase 3B Publish locally** (overwrites **only** the target **`content/***.mdx`**, **no Git commit** — **local / self-hosted** only; **not** recommended on typical **Vercel/serverless** disks). No GitHub publish API, Monaco/TipTap, or collaborative editing yet.
+This document describes the **admin authoring architecture**. The app ships: [`/admin`](../app/admin/layout.tsx), [`config/admins.yaml`](../config/admins.yaml), [`lib/content-repository/`](../lib/content-repository/), YAML-driven **offering-scoped** admin roles plus optional **site-scoped** **`sites`**, shared lesson and site MDX compilation, **sites** admin UI, **lesson/site preview**, **Save draft** via [`createDraftRepository()`](../lib/drafts/index.ts) (**`DRAFT_BACKEND`**: filesystem **`.data/drafts/`** or **Vercel Blob** — production-compatible drafts when **`blob`**), **Phase 3B Publish locally** (overwrites **only** one **`content/***.mdx`** after **`baseHash`** checks — **local / self-hosted only**; **blocked on Vercel** serverless — use Git-backed publish later). No GitHub publish API, Monaco/TipTap, or collaborative editing yet.
 
 Related: [Architecture](./architecture.md), [Auth and visibility](./auth-and-visibility.md), [Content layout](./content-layout.md).
 
@@ -34,17 +34,19 @@ An admin with **`offerings: ["*"]`** sees **every** offering returned by [`listO
 
 | Kind | Storage | Notes |
 |------|---------|--------|
-| **Published lessons** | Git / filesystem (`content/offerings/…/*.mdx`) | Default source of truth for learners. **Phase 3B:** **Publish locally** (admin) may overwrite **only** that lesson’s `.mdx` after hash checks — still **no Git commit**. |
-| **Published site pages** | Git / filesystem (`content/sites/…/pages/*.mdx`) | Same; **Publish locally** overwrites **only** that page `.mdx` after hash checks. |
-| **Local per-admin drafts** | **`.data/drafts/`** on the host filesystem | YAML-frontmatter `.mdx` per admin; includes **`baseHash`** (SHA-256 of published body when the draft was **first** saved). **Development / self-hosted only** — **not** durable on typical **Vercel/serverless** ephemeral disks. |
+| **Published lessons** | Git / filesystem (`content/offerings/…/*.mdx`) | Source of truth for learners. **Publish locally** may overwrite **only** that `.mdx` after hash checks — **no Git commit** — **not available on Vercel** (`VERCEL=1`). |
+| **Published site pages** | Git / filesystem (`content/sites/…/pages/*.mdx`) | Same publish semantics as lessons. |
+| **Per-admin drafts** | **`DraftRepository`** backend ([`createDraftRepository()`](../lib/drafts/index.ts)) | **`DRAFT_BACKEND=local`** (default): **`.data/drafts/`**. **`DRAFT_BACKEND=blob`**: Vercel Blob pathnames `drafts/{offerings|sites}/…/*.mdx`. Same YAML frontmatter + **`baseHash`**. Blob drafts work on **Vercel**; filesystem drafts do **not**. |
 | **Preview-only textarea** | In-memory | **`…/preview`** lesson route starts from **published** Git source each load; does not read `.data` drafts. |
 
 ### Draft layout (Phase 3A–3B)
 
-Drafts are addressed by [`DraftRepository`](../lib/drafts/types.ts); the default implementation is [`LocalFileDraftRepository`](../lib/drafts/local-file-draft-repository.ts):
+Drafts are addressed by [`DraftRepository`](../lib/drafts/types.ts). **`createDraftRepository()`** selects the backend from **`DRAFT_BACKEND`**:
 
-- Offerings: `.data/drafts/offerings/<offeringSlug>/<lessonSlug>/<sanitized-email>.mdx`
-- Sites: `.data/drafts/sites/<siteSlug>/<pageSlug>/<sanitized-email>.mdx` (`pageSlug` **`index`** for the home page)
+- **Disk (`local`, default):** `.data/drafts/offerings/<offeringSlug>/<lessonSlug>/<sanitized-email>.mdx` and `.data/drafts/sites/<siteSlug>/<pageSlug>/<sanitized-email>.mdx` (`pageSlug` **`index`** for home).
+- **Blob (`blob`):** `drafts/offerings/<offeringSlug>/<lessonSlug>/<sanitized-email>.mdx` and `drafts/sites/<siteSlug>/<pageSlug>/<sanitized-email>.mdx` (requires **`BLOB_READ_WRITE_TOKEN`** — typically injected when Vercel Blob is linked).
+
+Implementations: [`LocalFileDraftRepository`](../lib/drafts/local-file-draft-repository.ts), [`BlobDraftRepository`](../lib/drafts/blob-draft-repository.ts).
 
 Frontmatter includes **`updatedAt`**, **`updatedBy`**, **`baseHash`** (hex SHA-256 of the **published** MDX file at **first** save). Later **Save draft** calls **keep** the original `baseHash` so you can detect if someone changed the published file on disk afterward.
 
@@ -52,14 +54,14 @@ Frontmatter includes **`updatedAt`**, **`updatedBy`**, **`baseHash`** (hex SHA-2
 
 **Admin routes:**
 
-- **Edit draft (lesson):** `/admin/offerings/[offeringSlug]/lessons/[lessonSlug]/edit` — loads published source unless this admin has a draft; **Save draft** / **Discard draft** touch **only** `.data/drafts`; **Publish locally** overwrites **`content/offerings/.../<lesson>.mdx`** when allowed.
+- **Edit draft (lesson):** `/admin/offerings/[offeringSlug]/lessons/[lessonSlug]/edit` — loads published source unless this admin has a draft; **Save draft** / **Discard draft** touch **only** draft storage; **Publish locally** overwrites **`content/offerings/.../<lesson>.mdx`** when allowed (never on Vercel serverless).
 - **Edit draft (site page):** `/admin/sites/[siteSlug]/pages/[pageSlug]/edit` — same semantics for **`content/sites/.../pages/*.mdx`**.
 
 **Preview** compiles the **current textarea** via the same pipelines as learners (then HTML serialization for display — see below).
 
 ### Phase 3B: local publish + conflict detection
 
-**Trust boundary:** **`publishLessonDraftLocally`** / **`publishSitePageDraftLocally`** (server actions in [`lib/draft-lesson-actions.ts`](../lib/draft-lesson-actions.ts) / [`lib/draft-site-actions.ts`](../lib/draft-site-actions.ts)) are the **source of truth**. Each request **re-reads** the draft file and **re-reads** the published MDX from disk, then **only** proceeds if:
+**Trust boundary:** **`publishLessonDraftLocally`** / **`publishSitePageDraftLocally`** (server actions in [`lib/draft-lesson-actions.ts`](../lib/draft-lesson-actions.ts) / [`lib/draft-site-actions.ts`](../lib/draft-site-actions.ts)) are the **source of truth**. On **Vercel** they reject immediately (filesystem publish unsupported). Elsewhere each request **re-loads** the draft from **`DraftRepository`** and **re-reads** the published MDX from disk, then **only** proceeds if:
 
 1. Draft exists for this admin/target.  
 2. Draft has a non-empty **`baseHash`**.  
@@ -67,13 +69,13 @@ Frontmatter includes **`updatedAt`**, **`updatedBy`**, **`baseHash`** (hex SHA-2
 
 Otherwise the action returns an error and **does not write**. The UI may disable **Publish locally** when stale, but **never** rely on client state for safety.
 
-If the check passes, the action writes **draft body only** (plain MDX, **no** YAML frontmatter) to the single target path, then **deletes** the draft file. It does **not** modify `offering.yaml`, `site.yaml`, `videos.yaml`, `resources.yaml`, assets, or create commits.
+If the check passes, the action writes **draft body only** (plain MDX, **no** YAML frontmatter) to the single target path, then **deletes** the draft via **`DraftRepository`**. It does **not** modify `offering.yaml`, `site.yaml`, `videos.yaml`, `resources.yaml`, assets, or create commits.
 
 **Stale** means the published file on disk no longer matches the hash frozen on the draft — e.g. another process edited Git-tracked content. Message shown in UI and server:
 
 `Published file changed since this draft was created. Discard or manually reconcile before publishing.`
 
-Status helper for the edit UI: [`getDraftStatus`](../lib/drafts/draft-status.ts).
+Status helper for the edit UI: [`getDraftStatus`](../lib/drafts/draft-status.ts) (**async** — reads via **`DraftRepository`**).
 
 **Future GitHub publish** can reuse the same **baseHash vs head content** check before proposing a commit or PR.
 
@@ -81,9 +83,10 @@ Status helper for the edit UI: [`getDraftStatus`](../lib/drafts/draft-status.ts)
 
 | Implementation | Role |
 |----------------|------|
-| **`LocalFileDraftRepository`** | Current behavior under `.data/drafts`. |
-| **`DatabaseDraftRepository`** | Durable drafts, metadata, review — optional promotion to Git. |
-| **`GitHubDraftRepository`** | Branches or PRs — not implemented. |
+| **`LocalFileDraftRepository`** | Filesystem drafts under `.data/drafts` (`DRAFT_BACKEND=local`). |
+| **`BlobDraftRepository`** | Vercel Blob (`DRAFT_BACKEND=blob`) — durable drafts on serverless. |
+| **`DatabaseDraftRepository`** | Planned — durable drafts / review workflows. |
+| **`GitHubDraftRepository`** | Planned — branches or PRs. |
 
 Published content remains **Git-tracked** / reproducible for teams that commit after local publish.
 
@@ -104,11 +107,11 @@ Published MDX on disk
 ↓
 Edit + preview (optional)
 ↓
-Save draft → .data/drafts + baseHash snapshot
+Save draft → draft backend (`DraftRepository`) + baseHash snapshot
 ↓
-Publish locally (server re-checks draft + hash) → overwrite single content/**/*.mdx + delete draft
+Publish locally (non-Vercel only; server re-checks draft + hash) → overwrite single content/**/*.mdx + delete draft
 ↓
-(no Git commit yet — commit locally or wire CI/GitHub later)
+Future: Git-backed publish replaces filesystem publish for production
 ```
 
 ## Why Git-native publishing

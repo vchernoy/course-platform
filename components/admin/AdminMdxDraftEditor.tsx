@@ -34,6 +34,8 @@ export type AdminMdxDraftEditorProps =
       initialSource: string;
       initialPreview: AdminMdxPreviewResult;
       draftStatus: DraftStatus;
+      /** When set, Publish locally is unavailable (must match server action message). */
+      localPublishDisabledReason?: string | null;
       previewLabel?: string;
       sourceHeading?: string;
       helpText: string;
@@ -45,6 +47,7 @@ export type AdminMdxDraftEditorProps =
       initialSource: string;
       initialPreview: AdminMdxPreviewResult;
       draftStatus: DraftStatus;
+      localPublishDisabledReason?: string | null;
       previewLabel?: string;
       sourceHeading?: string;
       helpText: string;
@@ -58,6 +61,7 @@ export function AdminMdxDraftEditor(props: AdminMdxDraftEditorProps) {
     previewLabel = "Preview",
     sourceHeading = "MDX source",
     helpText,
+    localPublishDisabledReason = null,
   } = props;
 
   const router = useRouter();
@@ -69,7 +73,10 @@ export function AdminMdxDraftEditor(props: AdminMdxDraftEditorProps) {
 
   const editingDraft = draftStatus.hasDraft;
   const publishDisabledInUi =
-    !draftStatus.hasDraft || draftStatus.isStale || draftStatus.baseHash === null;
+    !!localPublishDisabledReason ||
+    !draftStatus.hasDraft ||
+    draftStatus.isStale ||
+    draftStatus.baseHash === null;
 
   function runPreview() {
     setNotice(null);
@@ -96,7 +103,7 @@ export function AdminMdxDraftEditor(props: AdminMdxDraftEditorProps) {
           return;
         }
         setNoticeTone("ok");
-        setNotice("Draft saved locally under .data/drafts (not published).");
+        setNotice("Draft saved (not published).");
         router.refresh();
       });
     });
@@ -126,6 +133,7 @@ export function AdminMdxDraftEditor(props: AdminMdxDraftEditorProps) {
   }
 
   function runPublish() {
+    if (localPublishDisabledReason) return;
     if (
       !window.confirm(
         "Overwrite the published MDX file under content/ with this draft and delete the draft? This does not create a Git commit."
@@ -233,11 +241,13 @@ export function AdminMdxDraftEditor(props: AdminMdxDraftEditorProps) {
               onClick={runPublish}
               disabled={pending || publishDisabledInUi}
               title={
-                publishDisabledInUi
-                  ? draftStatus.hasDraft && draftStatus.isStale
-                    ? CONFLICT_MSG
-                    : "Save a draft with base hash before publishing."
-                  : undefined
+                localPublishDisabledReason
+                  ? localPublishDisabledReason
+                  : publishDisabledInUi
+                    ? draftStatus.hasDraft && draftStatus.isStale
+                      ? CONFLICT_MSG
+                      : "Save a draft with base hash before publishing."
+                    : undefined
               }
               className="rounded-lg border border-emerald-600 bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
             >

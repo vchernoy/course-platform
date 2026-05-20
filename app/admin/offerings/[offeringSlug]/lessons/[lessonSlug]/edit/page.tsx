@@ -4,7 +4,11 @@ import { forbidden, notFound } from "next/navigation";
 import { AdminMdxDraftEditor } from "@/components/admin/AdminMdxDraftEditor";
 import { canAdminAccessOffering } from "@/lib/admin-auth";
 import { getCurrentUserEmail } from "@/lib/authz";
-import { getDraftStatus, getLocalFileDraftRepository } from "@/lib/drafts";
+import { createDraftRepository, getDraftStatus } from "@/lib/drafts";
+import {
+  draftSaveStoragePhrase,
+  localPublishDisabledReason,
+} from "@/lib/drafts/deployment-policy";
 import type { LessonMdxPreviewSerialization } from "@/lib/mdx-lesson-preview-serialize";
 import { serializeLessonMdxPreviewHtml } from "@/lib/mdx-lesson-preview-serialize";
 import { loadOfferingResources } from "@/lib/offering-resources";
@@ -71,26 +75,32 @@ export default async function AdminLessonDraftEditPage({ params }: Props) {
     notFound();
   }
 
-  const publishedSource = loadLessonSource(offeringSlug, hit.moduleSlug, lessonSlug);
-  const draft = getLocalFileDraftRepository().getDraft(
-    {
-      kind: "offeringLesson",
-      parentSlug: offeringSlug,
-      pageOrLessonSlug: lessonSlug,
-    },
-    email
-  );
+  let repo;
+  try {
+    repo = createDraftRepository();
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return (
+      <main className="max-w-xl">
+        <p className="text-sm font-medium text-red-800">Draft backend misconfigured</p>
+        <p className="mt-2 text-sm text-red-700">{msg}</p>
+      </main>
+    );
+  }
 
-  const draftStatus = getDraftStatus(
-    {
-      kind: "offeringLesson",
-      parentSlug: offeringSlug,
-      pageOrLessonSlug: lessonSlug,
-    },
-    email,
-    publishedSource,
-    getLocalFileDraftRepository()
-  );
+  const publishedSource = loadLessonSource(offeringSlug, hit.moduleSlug, lessonSlug);
+  const draftTarget = {
+    kind: "offeringLesson" as const,
+    parentSlug: offeringSlug,
+    pageOrLessonSlug: lessonSlug,
+  };
+
+  const draft = await repo.getDraft(draftTarget, email);
+
+  const draftStatus = await getDraftStatus(draftTarget, email, publishedSource, repo);
+
+  const publishBlockedReason = localPublishDisabledReason();
+  const storagePhrase = draftSaveStoragePhrase();
 
   const editorSource = draft?.source ?? publishedSource;
   const { videos, resources } = loadRegistriesSafe(offeringSlug);
@@ -136,8 +146,7 @@ export default async function AdminLessonDraftEditPage({ params }: Props) {
       <p className="mt-4 text-sm text-zinc-600">
         {draft ? (
           <>
-            Showing your{" "}
-            <span className="font-medium text-zinc-800">local draft</span> (updated{" "}
+            Showing your saved <span className="font-medium text-zinc-800">draft</span> (updated{" "}
             {draft.updatedAt}).{" "}
             <Link
               href={`/admin/offerings/${offeringSlug}/lessons/${lessonSlug}/preview`}
@@ -145,15 +154,35 @@ export default async function AdminLessonDraftEditPage({ params }: Props) {
             >
               Preview-only page
             </Link>{" "}
-            always starts from published Git source. Use{" "}
-            <span className="font-medium text-zinc-800">Publish locally</span> below to write back to{" "}
-            <code className="rounded bg-zinc-100 px-1 text-xs">content/offerings/</code> (dev/self-hosted only).
+            always starts from published Git source.
+            {publishBlockedReason ? (
+              <>
+                {" "}
+                <span className="font-medium text-zinc-800">Publish locally</span> is disabled in this deployment
+                (see server message when attempting publish).
+              </>
+            ) : (
+              <>
+                {" "}
+                Use <span className="font-medium text-zinc-800">Publish locally</span> below to write back to{" "}
+                <code className="rounded bg-zinc-100 px-1 text-xs">content/offerings/</code> (local dev /
+                self-hosted only).
+              </>
+            )}
           </>
         ) : (
           <>
-            No local draft yet — textarea shows published source. Save draft stores under{" "}
-            <code className="rounded bg-zinc-100 px-1 text-xs">.data/drafts/</code>; publish overwrites only this lesson
-            MDX under <code className="rounded bg-zinc-100 px-1 text-xs">content/offerings/</code>.
+            No draft yet — textarea shows published source. Save draft snapshots the published body hash in{" "}
+            <span className="font-medium text-zinc-800">{storagePhrase}</span>.
+            {publishBlockedReason ? (
+              <> Publish locally is unavailable on this deployment.</>
+            ) : (
+              <>
+                {" "}
+                Publish locally overwrites only this lesson MDX under{" "}
+                <code className="rounded bg-zinc-100 px-1 text-xs">content/offerings/</code>.
+              </>
+            )}
           </>
         )}
       </p>
@@ -167,9 +196,12 @@ export default async function AdminLessonDraftEditPage({ params }: Props) {
           initialSource={editorSource}
           initialPreview={initialPreview}
           draftStatus={draftStatus}
+          localPublishDisabledReason={publishBlockedReason}
           helpText={
-            "Save draft stores YAML-frontmatter under .data/drafts with a base hash of the published file (Phase 3B). " +
-            "Publish locally overwrites only this lesson .mdx under content/offerings when the hash still matches — server rechecks every time; not for typical serverless production. " +
+            `Save draft stores YAML-frontmatter in ${storagePhrase} with a base hash of the published file (Phase 3B). ` +
+            (publishBlockedReason
+              ? "Publish locally is disabled on this deployment (filesystem publish to content/ is unsupported). Future Git-backed publish will replace it for production. "
+              : "Publish locally overwrites only this lesson .mdx under content/offerings when the hash still matches — server rechecks every time (local dev / self-hosted only). ") +
             "No Git commit. See docs/admin-authoring.md."
           }
         />

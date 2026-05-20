@@ -1,18 +1,12 @@
 import fs from "fs";
 import path from "path";
+import { assertValidDraftTarget } from "@/lib/drafts/draft-target-path";
 import { parseDraftMdxFile, serializeDraftMdxFile } from "@/lib/drafts/draft-frontmatter";
 import { sanitizeDraftEmailBasename } from "@/lib/drafts/email-filename";
 import { hashPublishedMdxSource } from "@/lib/drafts/source-hash";
 import type { DraftRecord, DraftRepository, DraftStored, DraftTarget } from "@/lib/drafts/types";
 import { isSafeSlug } from "@/lib/slug";
 import { normalizeEmail } from "@/lib/students";
-
-function ensureUnderDraftRoot(draftRootAbs: string, fileAbs: string): void {
-  const rel = path.relative(draftRootAbs, fileAbs);
-  if (rel.startsWith("..") || path.isAbsolute(rel)) {
-    throw new Error("Resolved draft path escapes draft root.");
-  }
-}
 
 function assertValidPageOrLessonSlug(kind: DraftTarget["kind"], pageOrLessonSlug: string): void {
   if (kind === "sitePage") {
@@ -26,11 +20,11 @@ function assertValidPageOrLessonSlug(kind: DraftTarget["kind"], pageOrLessonSlug
   }
 }
 
-function assertValidDraftTarget(target: DraftTarget): void {
-  if (!isSafeSlug(target.parentSlug)) {
-    throw new Error(`Invalid draft parent slug: ${JSON.stringify(target.parentSlug)}`);
+function ensureUnderDraftRoot(draftRootAbs: string, fileAbs: string): void {
+  const rel = path.relative(draftRootAbs, fileAbs);
+  if (rel.startsWith("..") || path.isAbsolute(rel)) {
+    throw new Error("Resolved draft path escapes draft root.");
   }
-  assertValidPageOrLessonSlug(target.kind, target.pageOrLessonSlug);
 }
 
 export class LocalFileDraftRepository implements DraftRepository {
@@ -56,7 +50,7 @@ export class LocalFileDraftRepository implements DraftRepository {
     return resolved;
   }
 
-  getDraft(target: DraftTarget, adminEmail: string): DraftStored | null {
+  async getDraft(target: DraftTarget, adminEmail: string): Promise<DraftStored | null> {
     const fp = this.draftFilePath(target, adminEmail);
     if (!fs.existsSync(fp)) return null;
     const raw = fs.readFileSync(fp, "utf8");
@@ -69,7 +63,12 @@ export class LocalFileDraftRepository implements DraftRepository {
     };
   }
 
-  saveDraft(target: DraftTarget, adminEmail: string, source: string, publishedSourceBody: string): void {
+  async saveDraft(
+    target: DraftTarget,
+    adminEmail: string,
+    source: string,
+    publishedSourceBody: string
+  ): Promise<void> {
     const norm = normalizeEmail(adminEmail);
     const fp = this.draftFilePath(target, adminEmail);
     fs.mkdirSync(path.dirname(fp), { recursive: true });
@@ -99,13 +98,13 @@ export class LocalFileDraftRepository implements DraftRepository {
     fs.writeFileSync(fp, file, "utf8");
   }
 
-  deleteDraft(target: DraftTarget, adminEmail: string): void {
+  async deleteDraft(target: DraftTarget, adminEmail: string): Promise<void> {
     const fp = this.draftFilePath(target, adminEmail);
     if (!fs.existsSync(fp)) return;
     fs.unlinkSync(fp);
   }
 
-  listDraftsForAdmin(adminEmail: string): DraftRecord[] {
+  async listDraftsForAdmin(adminEmail: string): Promise<DraftRecord[]> {
     let basename: string;
     try {
       basename = `${sanitizeDraftEmailBasename(adminEmail)}.mdx`;
@@ -138,7 +137,7 @@ export class LocalFileDraftRepository implements DraftRepository {
           try {
             const raw = fs.readFileSync(fp, "utf8");
             const { meta, body } = parseDraftMdxFile(raw);
-            const target: DraftTarget =
+            const draftTarget: DraftTarget =
               kind === "offeringLesson"
                 ? {
                     kind: "offeringLesson",
@@ -151,7 +150,7 @@ export class LocalFileDraftRepository implements DraftRepository {
                     pageOrLessonSlug,
                   };
             out.push({
-              ...target,
+              ...draftTarget,
               source: body,
               updatedAt: meta.updatedAt,
               updatedBy: meta.updatedBy,

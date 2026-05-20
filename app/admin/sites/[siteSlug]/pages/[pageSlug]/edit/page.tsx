@@ -4,7 +4,11 @@ import { forbidden, notFound } from "next/navigation";
 import { AdminMdxDraftEditor } from "@/components/admin/AdminMdxDraftEditor";
 import { canAdminAccessSite } from "@/lib/admin-auth";
 import { getCurrentUserEmail } from "@/lib/authz";
-import { getDraftStatus, getLocalFileDraftRepository } from "@/lib/drafts";
+import { createDraftRepository, getDraftStatus } from "@/lib/drafts";
+import {
+  draftSaveStoragePhrase,
+  localPublishDisabledReason,
+} from "@/lib/drafts/deployment-policy";
 import type { SiteMdxPreviewSerialization } from "@/lib/mdx-site-preview-serialize";
 import { serializeSiteMdxPreviewHtml } from "@/lib/mdx-site-preview-serialize";
 import { listSitePageSlugs, loadSite, loadSitePageSource } from "@/lib/sites";
@@ -53,26 +57,32 @@ export default async function AdminSitePageDraftEditPage({ params }: Props) {
     notFound();
   }
 
-  const publishedSource = loadSitePageSource(siteSlug, pageSlug);
-  const draft = getLocalFileDraftRepository().getDraft(
-    {
-      kind: "sitePage",
-      parentSlug: siteSlug,
-      pageOrLessonSlug: pageSlug,
-    },
-    email
-  );
+  let repo;
+  try {
+    repo = createDraftRepository();
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return (
+      <main className="max-w-xl">
+        <p className="text-sm font-medium text-red-800">Draft backend misconfigured</p>
+        <p className="mt-2 text-sm text-red-700">{msg}</p>
+      </main>
+    );
+  }
 
-  const draftStatus = getDraftStatus(
-    {
-      kind: "sitePage",
-      parentSlug: siteSlug,
-      pageOrLessonSlug: pageSlug,
-    },
-    email,
-    publishedSource,
-    getLocalFileDraftRepository()
-  );
+  const publishedSource = loadSitePageSource(siteSlug, pageSlug);
+  const draftTarget = {
+    kind: "sitePage" as const,
+    parentSlug: siteSlug,
+    pageOrLessonSlug: pageSlug,
+  };
+
+  const draft = await repo.getDraft(draftTarget, email);
+
+  const draftStatus = await getDraftStatus(draftTarget, email, publishedSource, repo);
+
+  const publishBlockedReason = localPublishDisabledReason();
+  const storagePhrase = draftSaveStoragePhrase();
 
   const editorSource = draft?.source ?? publishedSource;
 
@@ -108,17 +118,35 @@ export default async function AdminSitePageDraftEditPage({ params }: Props) {
       <p className="mt-4 text-sm text-zinc-600">
         {draft ? (
           <>
-            Showing your <span className="font-medium text-zinc-800">local draft</span> (updated{" "}
+            Showing your saved <span className="font-medium text-zinc-800">draft</span> (updated{" "}
             {draft.updatedAt}).{" "}
-            <span className="font-medium text-zinc-800">Publish locally</span> writes this page MDX back to{" "}
-            <code className="rounded bg-zinc-100 px-1 text-xs">content/sites/</code> when the base hash matches
-            (dev/self-hosted only).
+            {publishBlockedReason ? (
+              <>
+                <span className="font-medium text-zinc-800">Publish locally</span> is disabled in this deployment (see
+                server message when attempting publish).
+              </>
+            ) : (
+              <>
+                <span className="font-medium text-zinc-800">Publish locally</span> writes this page MDX back to{" "}
+                <code className="rounded bg-zinc-100 px-1 text-xs">content/sites/</code> when the base hash matches
+                (local dev / self-hosted only).
+              </>
+            )}
           </>
         ) : (
           <>
-            No local draft yet — textarea shows published source. Save draft under{" "}
-            <code className="rounded bg-zinc-100 px-1 text-xs">.data/drafts/</code>; publish overwrites only this{" "}
-            <code className="rounded bg-zinc-100 px-1 text-xs">pages/*.mdx</code> file.
+            No draft yet — textarea shows published source. Save draft snapshots the published body hash in{" "}
+            <span className="font-medium text-zinc-800">{storagePhrase}</span>.
+            {publishBlockedReason ? (
+              <> Publish locally is unavailable on this deployment.</>
+            ) : (
+              <>
+                {" "}
+                Publish locally overwrites only this{" "}
+                <code className="rounded bg-zinc-100 px-1 text-xs">pages/*.mdx</code> file under{" "}
+                <code className="rounded bg-zinc-100 px-1 text-xs">content/sites/</code>.
+              </>
+            )}
           </>
         )}
       </p>
@@ -132,9 +160,12 @@ export default async function AdminSitePageDraftEditPage({ params }: Props) {
           initialSource={editorSource}
           initialPreview={initialPreview}
           draftStatus={draftStatus}
+          localPublishDisabledReason={publishBlockedReason}
           helpText={
-            "Save draft stores YAML-frontmatter under .data/drafts with a base hash of the published file (Phase 3B). " +
-            "Publish locally overwrites only this page .mdx under content/sites when the hash still matches — server rechecks every time; not for typical serverless production. " +
+            `Save draft stores YAML-frontmatter in ${storagePhrase} with a base hash of the published file (Phase 3B). ` +
+            (publishBlockedReason
+              ? "Publish locally is disabled on this deployment (filesystem publish to content/ is unsupported). Future Git-backed publish will replace it for production. "
+              : "Publish locally overwrites only this page .mdx under content/sites when the hash still matches — server rechecks every time (local dev / self-hosted only). ") +
             "No Git commit. See docs/admin-authoring.md."
           }
         />

@@ -14,14 +14,14 @@ export type DraftStatus = {
  * Read-only draft vs published comparison for admin UI.
  * Stale when published body hash differs from draft baseHash, or when draft lacks baseHash (legacy).
  */
-export function getDraftStatus(
+export async function getDraftStatus(
   target: DraftTarget,
   adminEmail: string,
   currentPublishedSource: string,
   repo: DraftRepository
-): DraftStatus {
+): Promise<DraftStatus> {
   const currentHash = hashPublishedMdxSource(currentPublishedSource);
-  const draft = repo.getDraft(target, adminEmail);
+  const draft = await repo.getDraft(target, adminEmail);
   if (!draft) {
     return {
       hasDraft: false,

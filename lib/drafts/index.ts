@@ -1,4 +1,6 @@
 import path from "path";
+import { BlobDraftRepository } from "@/lib/drafts/blob-draft-repository";
+import { resolveDraftBackend } from "@/lib/drafts/deployment-policy";
 import { LocalFileDraftRepository } from "@/lib/drafts/local-file-draft-repository";
 import type { DraftRepository } from "@/lib/drafts/types";
 
@@ -9,6 +11,7 @@ export type {
   DraftTarget,
 } from "@/lib/drafts/types";
 
+export { BlobDraftRepository } from "@/lib/drafts/blob-draft-repository";
 export { LocalFileDraftRepository } from "@/lib/drafts/local-file-draft-repository";
 export { sanitizeDraftEmailBasename } from "@/lib/drafts/email-filename";
 export {
@@ -25,21 +28,33 @@ export {
 } from "@/lib/drafts/publish-local";
 export { CONFLICT_MSG } from "@/lib/drafts/publish-messages";
 
-let singleton: LocalFileDraftRepository | null = null;
+let singleton: DraftRepository | null = null;
 
 export function defaultDraftRoot(): string {
   return path.join(process.cwd(), ".data", "drafts");
 }
 
-/** Production wiring: local filesystem under `.data/drafts`. */
-export function getLocalFileDraftRepository(): DraftRepository {
+/**
+ * Singleton draft backend: filesystem under `.data/drafts` or Vercel Blob (`DRAFT_BACKEND=blob`).
+ */
+export function createDraftRepository(): DraftRepository {
   if (!singleton) {
-    singleton = new LocalFileDraftRepository(defaultDraftRoot());
+    const backend = resolveDraftBackend();
+    if (backend === "blob") {
+      if (!process.env.BLOB_READ_WRITE_TOKEN?.trim()) {
+        throw new Error(
+          "DRAFT_BACKEND=blob requires BLOB_READ_WRITE_TOKEN (e.g. from your Vercel Blob store)."
+        );
+      }
+      singleton = new BlobDraftRepository();
+    } else {
+      singleton = new LocalFileDraftRepository(defaultDraftRoot());
+    }
   }
   return singleton;
 }
 
-/** Test helper: reset singleton so the next `getLocalFileDraftRepository()` uses a fresh default root. */
-export function resetLocalFileDraftRepositorySingleton(): void {
+/** Test helper: reset singleton so the next {@link createDraftRepository} reconstructs from env. */
+export function resetDraftRepositorySingleton(): void {
   singleton = null;
 }
