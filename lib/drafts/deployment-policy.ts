@@ -22,6 +22,12 @@ export function localPublishDisabledReason(): string | null {
   return LOCAL_PUBLISH_BLOCKED_ON_VERCEL_MESSAGE;
 }
 
+/** Published site page create/delete (direct `content/sites` writes): blocked on Vercel with the same message as local publish. */
+export function sitePageFilesystemMutationBlockedReason(): string | null {
+  if (isVercelDeployment()) return LOCAL_PUBLISH_BLOCKED_ON_VERCEL_MESSAGE;
+  return null;
+}
+
 /**
  * When Vercel uses filesystem draft storage, save/discard cannot work (read-only /var/task).
  */

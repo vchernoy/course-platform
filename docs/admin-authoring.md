@@ -1,6 +1,6 @@
 # Admin authoring (preview, local drafts, Git-backed publishing)
 
-This document describes the **admin authoring architecture**. The app ships: [`/admin`](../app/admin/layout.tsx), [`config/admins.yaml`](../config/admins.yaml), [`lib/content-repository/`](../lib/content-repository/), YAML-driven admin **assignments** (scopes on offerings and sites), shared lesson and site MDX compilation, **sites** admin UI, **lesson/site preview**, **Save draft** via [`createDraftRepository()`](../lib/drafts/index.ts) (**`DRAFT_BACKEND`**: filesystem **`.data/drafts/`** or **Vercel Blob** — production-compatible drafts when **`blob`**), **Phase 3B Publish locally** (overwrites **only** one **`content/***.mdx`** after **`baseHash`** checks — **local / self-hosted only**; **blocked on Vercel** serverless — use Git-backed publish later). No GitHub publish API, Monaco/TipTap, or collaborative editing yet.
+This document describes the **admin authoring architecture**. The app ships: [`/admin`](../app/admin/layout.tsx), [`config/admins.yaml`](../config/admins.yaml), [`lib/content-repository/`](../lib/content-repository/), YAML-driven admin **assignments** (scopes on offerings and sites), shared lesson and site MDX compilation, **sites** admin UI, **lesson/site preview**, **Phase 4A create/delete site pages**, **Save draft** via [`createDraftRepository()`](../lib/drafts/index.ts) (**`DRAFT_BACKEND`**: filesystem **`.data/drafts/`** or **Vercel Blob** — production-compatible drafts when **`blob`**), **Phase 3B Publish locally** (overwrites **only** one **`content/***.mdx`** after **`baseHash`** checks — **local / self-hosted only**; **blocked on Vercel** serverless — use Git-backed publish later). No GitHub publish API, Monaco/TipTap, or collaborative editing yet.
 
 Related: [Architecture](./architecture.md), [Auth and visibility](./auth-and-visibility.md), [Content layout](./content-layout.md).
 
@@ -14,7 +14,7 @@ Each row uses an **`assignments`** array (**non-empty**). Do **not** mix **`assi
 
 Every assignment has:
 
-- **`role`** — `owner` \| `editor` \| `viewer` (validated at load time; finer permission differences within the admin surfaces are **not** implemented yet — all granted roles behave the same for the existing **`canAdminAccess*`** helpers).
+- **`role`** — `owner` \| `editor` \| `viewer` (validated at load time). Today, **`canAdminAccess*`** does not distinguish roles. **Phase 4A** site page create/delete additionally requires **`canAdminMutateSite`** (see below): **`viewer`** cannot add or remove published pages even when a **viewer** assignment grants the site.
 - **`scope`** — a mapping **`type`** and optional **`slug`**:
   - **`platform`** — no **`slug`**; **`slug` must not** be present. Grants access to **all offerings** **and** **all sites** (same breadth as legacy **`"*"`** on both **`offerings`** and **`sites`** together). Does **not** add separate capabilities such as manage-admins, billing, or global settings — only the same **`/admin/offerings/*`** / **`/admin/sites/*`** gates as elsewhere.
   - **`offering`** — **`slug`** required — a safe slug under **`content/offerings/<slug>/`** grants only that offering.
@@ -50,12 +50,23 @@ A **reference copy** of an all-legacy admins file (same shape as an earlier `con
 - `listAdminAllowedOfferingSlugs(email, allOfferingSlugs)` — drives **`/admin/offerings`**.
 - `canAdminAccessSite(email, siteSlug)` — gate **`/admin/sites/[siteSlug]`** and site page edit routes.
 - `listAdminAllowedSiteSlugs(email, allSiteSlugs)` — drives **`/admin/sites`**.
+- `canAdminMutateSite(email, siteSlug)` — **Phase 4A** published site page create/delete on disk; requires **`owner`** or **`editor`** on an assignment that **grants this site** (`platform` / **`wildcard_sites`** / scoped **`site`**). **Offering-only** editors do not qualify; **viewer** never qualifies.
 
 [`lib/admins.ts`](../lib/admins.ts) holds pure parsers plus **`…FromConfig`** helpers — useful for tests and offline validation; route handlers and server actions should prefer **`admin-auth`** wrappers above.
 
 **Students vs admins:** [`students.yaml`](../config/students.yaml) controls learner access to **`/offerings/*`**. Admin UI uses **`admins.yaml`** only. The same person may appear in both files with different scopes.
 
 **Multi-tenant future:** Today there is a single YAML file and one content tree. Later, **tenant id** can select which repo / DB / bucket backs a `ContentRepository` without changing lesson URLs.
+
+### Phase 4A: Create / delete published site pages
+
+<a id="phase-4a-create--delete-published-site-pages"></a>
+
+- **Where:** [`/admin/sites/[siteSlug]`](../app/admin/sites/[siteSlug]/page.tsx) — form to create a page (title, slug, optional **add to navigation**); per-page **Delete** (not **`index`** / home).
+- **What it writes:** `content/sites/<siteSlug>/pages/<slug>.mdx` with a minimal starter body; optional append to **`site.yaml` `navigation`**. **Delete** removes the MDX file and drops a matching **`navigation` `page`** entry if present. **Assets are not deleted.**
+- **Who:** [`canAdminMutateSite`](../lib/admin-auth.ts) plus signed-in user. Evaluated **per assignment** (same site-grant predicate as site access, but **excluding** `viewer` and **excluding** assignments that do not grant this site).
+- **Where it runs:** Local / self-hosted only — same guard as **Publish locally**: [`sitePageFilesystemMutationBlockedReason()`](../lib/drafts/deployment-policy.ts) on Vercel (`VERCEL=1`) returns the same message as blocked local publish (`LOCAL_PUBLISH_BLOCKED_ON_VERCEL_MESSAGE`). Server actions: [`lib/admin-site-page-actions.ts`](../lib/admin-site-page-actions.ts); filesystem helpers: [`lib/admin-site-page-crud.ts`](../lib/admin-site-page-crud.ts).
+- **Out of scope:** No automatic draft cleanup when deleting a published page (orphan drafts remain possible). No GitHub publishing, DB, offering/lesson CRUD, rename, or drag/drop nav reorder.
 
 ## Draft vs published vs preview (today)
 

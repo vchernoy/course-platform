@@ -4,6 +4,7 @@ import {
   loadAdmins,
   canAdminAccessOfferingFromConfig,
   canAdminAccessSiteFromConfig,
+  canAdminMutateSiteFromConfig,
   listAdminAllowedOfferingSlugsFromConfig,
   listAdminAllowedSiteSlugsFromConfig,
   type AdminAccess,
@@ -40,6 +41,11 @@ export function listAdminAllowedOfferingSlugs(
 
 export function canAdminAccessSite(email: string | undefined, siteSlug: string): boolean {
   return canAdminAccessSiteFromConfig(loadAdmins(), email, siteSlug);
+}
+
+/** Create/delete published site pages (Phase 4A): owner/editor on a site-granting assignment only. */
+export function canAdminMutateSite(email: string | undefined, siteSlug: string): boolean {
+  return canAdminMutateSiteFromConfig(loadAdmins(), email, siteSlug);
 }
 
 export function listAdminAllowedSiteSlugs(

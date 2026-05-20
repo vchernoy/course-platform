@@ -439,12 +439,38 @@ function canGrantOffering(assignments: readonly AdminAssignment[], offeringSlug:
   return false;
 }
 
+/** True if this single assignment grants admin UI access to `siteSlug` (any role). */
+export function assignmentGrantsSiteSlug(a: AdminAssignment, siteSlug: string): boolean {
+  if (!isSafeSlug(siteSlug)) return false;
+  const s = a.scope;
+  if (s.type === "platform" || s.type === "wildcard_sites") return true;
+  if (s.type === "site" && s.slug === siteSlug) return true;
+  return false;
+}
+
 function canGrantSite(assignments: readonly AdminAssignment[], siteSlug: string): boolean {
   if (!isSafeSlug(siteSlug)) return false;
   for (const a of assignments) {
-    const s = a.scope;
-    if (s.type === "platform" || s.type === "wildcard_sites") return true;
-    if (s.type === "site" && s.slug === siteSlug) return true;
+    if (assignmentGrantsSiteSlug(a, siteSlug)) return true;
+  }
+  return false;
+}
+
+/**
+ * Create/delete published site pages (filesystem `content/sites`) may run only when some
+ * assignment grants this site/platWildcard AND that assignment's role is owner or editor.
+ * Viewer assignments that grant the site do not allow mutation.
+ */
+export function canAdminMutateSiteFromConfig(
+  config: AdminsConfig,
+  email: string | undefined,
+  siteSlug: string
+): boolean {
+  const access = getAdminAccessFromConfig(config, email);
+  if (!access || !isSafeSlug(siteSlug)) return false;
+  for (const a of access.assignments) {
+    if (a.role !== "owner" && a.role !== "editor") continue;
+    if (assignmentGrantsSiteSlug(a, siteSlug)) return true;
   }
   return false;
 }

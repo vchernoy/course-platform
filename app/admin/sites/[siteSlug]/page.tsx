@@ -1,9 +1,12 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { forbidden, notFound } from "next/navigation";
-import { canAdminAccessSite } from "@/lib/admin-auth";
+import { SitePageCreateForm } from "@/components/admin/SitePageCreateForm";
+import { SitePageDeleteButton } from "@/components/admin/SitePageDeleteButton";
+import { canAdminAccessSite, canAdminMutateSite } from "@/lib/admin-auth";
 import { getCurrentUserEmail } from "@/lib/authz";
 import { getSitePageDisplayTitle } from "@/lib/admin-site-pages";
+import { sitePageFilesystemMutationBlockedReason } from "@/lib/drafts/deployment-policy";
 import {
   effectiveSiteVisibility,
   isPublicSite,
@@ -51,6 +54,13 @@ export default async function AdminSiteDetailPage({ params }: Props) {
   const visibility = effectiveSiteVisibility(site);
   const pages = listSitePageSlugs(siteSlug);
   const publicOk = isPublicSite(site);
+
+  const canMutatePages = Boolean(email && canAdminMutateSite(email, siteSlug));
+  const siteFsBlocked = sitePageFilesystemMutationBlockedReason();
+  const createDeleteDisabledReason: string | null =
+    siteFsBlocked ??
+    (!canMutatePages ? "Viewers cannot create or delete published pages." : null);
+  const mutateControlsDisabled = createDeleteDisabledReason !== null;
 
   return (
     <main>
@@ -119,6 +129,21 @@ export default async function AdminSiteDetailPage({ params }: Props) {
       </section>
 
       <section className="mt-10">
+        <h2 className="text-lg font-semibold text-zinc-900">Create page</h2>
+        <p className="mt-1 text-xs text-zinc-500">
+          Creates <span className="font-medium text-zinc-700">Git-tracked</span> <code className="text-[11px]">pages/&lt;slug&gt;.mdx</code> under{" "}
+          <code className="text-[11px]">content/sites/{siteSlug}/</code> (local / self-hosted only).
+        </p>
+        <div className="mt-3 max-w-md">
+          <SitePageCreateForm
+            siteSlug={siteSlug}
+            disabled={mutateControlsDisabled}
+            disabledReason={createDeleteDisabledReason}
+          />
+        </div>
+      </section>
+
+      <section className="mt-10">
         <h2 className="text-lg font-semibold text-zinc-900">Site pages</h2>
         <ul className="mt-3 space-y-3 text-sm text-zinc-800">
           {pages.map((p) => {
@@ -140,13 +165,22 @@ export default async function AdminSiteDetailPage({ params }: Props) {
                   <span className="font-medium text-zinc-900">{displayTitle}</span>
                   <span className="text-zinc-400"> · {p}</span>
                 </span>
-                <span className="flex flex-wrap gap-x-3 gap-y-1">
+                <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
                   <Link
                     href={`/admin/sites/${siteSlug}/pages/${p}/edit`}
                     className="text-xs font-medium text-zinc-600 underline-offset-2 hover:text-zinc-900 hover:underline"
                   >
                     Edit draft
                   </Link>
+                  {p !== "index" ? (
+                    <SitePageDeleteButton
+                      siteSlug={siteSlug}
+                      pageSlug={p}
+                      pageLabel={displayTitle}
+                      disabled={mutateControlsDisabled}
+                      disabledReason={createDeleteDisabledReason}
+                    />
+                  ) : null}
                   {href ? (
                     <Link href={href} className="text-xs font-medium text-emerald-700 underline-offset-2 hover:underline">
                       Open public page
@@ -164,8 +198,11 @@ export default async function AdminSiteDetailPage({ params }: Props) {
       <p className="mt-10 rounded-lg border border-dashed border-zinc-200 bg-zinc-50/80 p-4 text-sm text-zinc-600">
         Use <span className="font-medium text-zinc-800">Edit draft</span> for local MDX drafts under{" "}
         <code className="rounded bg-zinc-100 px-1 text-xs">.data/drafts/</code> (dev / self-hosted — not durable on
-        typical serverless hosts). Publishing still means editing Git-tracked files or a future publish workflow; see{" "}
-        <span className="font-medium text-zinc-800">docs/admin-authoring.md</span>.
+        typical serverless hosts). <span className="font-medium text-zinc-800">Create page</span> and{" "}
+        <span className="font-medium text-zinc-800">Delete page</span> edit published files under{" "}
+        <code className="rounded bg-zinc-100 px-1 text-xs">content/sites/</code> directly; they use the same Vercel
+        restriction as <span className="font-medium text-zinc-800">Publish locally</span>. Deleting a page does not
+        remove drafts. See <span className="font-medium text-zinc-800">docs/admin-authoring.md</span>.
       </p>
     </main>
   );
