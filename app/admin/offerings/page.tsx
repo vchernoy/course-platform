@@ -79,18 +79,18 @@ export default async function AdminOfferingsPage() {
                     href={`/p/${slug}`}
                     className="text-zinc-700 underline-offset-2 hover:text-zinc-900 hover:underline"
                   >
-                    Public page
+                    Open public page
                   </Link>
                 ) : (
                   <span className="text-zinc-400" title="Offering is private">
-                    Public page (unavailable)
+                    Public page unavailable
                   </span>
                 )}
                 <Link
                   href={`/offerings/${slug}`}
                   className="text-zinc-700 underline-offset-2 hover:text-zinc-900 hover:underline"
                 >
-                  Private overview
+                  Open private overview
                 </Link>
               </div>
             </li>

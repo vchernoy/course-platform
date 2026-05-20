@@ -22,7 +22,7 @@ export default async function AdminSitesPage() {
     <main>
       <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Sites</h1>
       <p className="mt-2 text-sm text-zinc-600">
-        Filesystem-backed sites under <code className="text-xs">content/sites/</code>. Only sites your admin
+        Marketing sites configured under <code className="text-xs">content/sites/</code>. Only sites your admin
         account may access are listed.
       </p>
 
@@ -53,19 +53,21 @@ export default async function AdminSitesPage() {
                   <dt className="text-zinc-500">Visibility</dt>
                   <dd className="font-medium text-zinc-800">{visibility}</dd>
                 </div>
-                <div>
-                  <dt className="text-zinc-500">Public /s route</dt>
-                  <dd className="font-medium text-zinc-800">
-                    {publicOk ? (
-                      <Link href={`/s/${slug}`} className="text-emerald-700 underline-offset-2 hover:underline">
-                        Open /s/{slug}
-                      </Link>
-                    ) : (
-                      <span className="text-zinc-500">Hidden (private)</span>
-                    )}
-                  </dd>
-                </div>
               </dl>
+              <div className="mt-4 flex flex-wrap gap-3 border-t border-zinc-100 pt-4 text-sm">
+                {publicOk ? (
+                  <Link
+                    href={`/s/${slug}`}
+                    className="text-zinc-700 underline-offset-2 hover:text-zinc-900 hover:underline"
+                  >
+                    Open public page
+                  </Link>
+                ) : (
+                  <span className="text-zinc-400" title="Site is not publicly reachable">
+                    Public page unavailable
+                  </span>
+                )}
+              </div>
             </li>
           );
         })}

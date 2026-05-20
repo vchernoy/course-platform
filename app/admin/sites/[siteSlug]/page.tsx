@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { forbidden, notFound } from "next/navigation";
 import { canAdminAccessSite } from "@/lib/admin-auth";
 import { getCurrentUserEmail } from "@/lib/authz";
+import { getSitePageDisplayTitle } from "@/lib/admin-site-pages";
 import {
   effectiveSiteVisibility,
   isPublicSite,
@@ -73,9 +74,12 @@ export default async function AdminSiteDetailPage({ params }: Props) {
           <dt className="text-zinc-500">Public URL</dt>
           <dd className="font-medium text-zinc-800">
             {publicOk ? (
-              <Link href={`/s/${siteSlug}`} className="text-emerald-700 underline-offset-2 hover:underline">
-                /s/{siteSlug}
-              </Link>
+              <span className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+                <code className="text-xs text-zinc-700">/s/{siteSlug}</code>
+                <Link href={`/s/${siteSlug}`} className="text-sm text-emerald-700 underline-offset-2 hover:underline">
+                  Open public page
+                </Link>
+              </span>
             ) : (
               <span className="text-zinc-500">Not publicly reachable</span>
             )}
@@ -115,9 +119,10 @@ export default async function AdminSiteDetailPage({ params }: Props) {
       </section>
 
       <section className="mt-10">
-        <h2 className="text-lg font-semibold text-zinc-900">Pages on disk</h2>
-        <ul className="mt-3 space-y-2 text-sm text-zinc-800">
+        <h2 className="text-lg font-semibold text-zinc-900">Site pages</h2>
+        <ul className="mt-3 space-y-3 text-sm text-zinc-800">
           {pages.map((p) => {
+            const displayTitle = getSitePageDisplayTitle(site, p);
             const href =
               p === "index"
                 ? publicOk
@@ -127,21 +132,29 @@ export default async function AdminSiteDetailPage({ params }: Props) {
                   ? `/s/${siteSlug}/${p}`
                   : null;
             return (
-              <li key={p} className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <code className="rounded bg-zinc-100 px-1 py-0.5 text-xs">{p}</code>
-                <Link
-                  href={`/admin/sites/${siteSlug}/pages/${p}/edit`}
-                  className="text-xs font-medium text-zinc-600 underline-offset-2 hover:text-zinc-900 hover:underline"
-                >
-                  Edit draft
-                </Link>
-                {href ? (
-                  <Link href={href} className="text-xs font-medium text-emerald-700 underline-offset-2 hover:underline">
-                    View public page
+              <li
+                key={p}
+                className="flex flex-wrap items-baseline justify-between gap-2 rounded-lg border border-zinc-100 bg-white px-3 py-2"
+              >
+                <span>
+                  <span className="font-medium text-zinc-900">{displayTitle}</span>
+                  <span className="text-zinc-400"> · {p}</span>
+                </span>
+                <span className="flex flex-wrap gap-x-3 gap-y-1">
+                  <Link
+                    href={`/admin/sites/${siteSlug}/pages/${p}/edit`}
+                    className="text-xs font-medium text-zinc-600 underline-offset-2 hover:text-zinc-900 hover:underline"
+                  >
+                    Edit draft
                   </Link>
-                ) : (
-                  <span className="text-xs text-zinc-500">Private site — no public URL</span>
-                )}
+                  {href ? (
+                    <Link href={href} className="text-xs font-medium text-emerald-700 underline-offset-2 hover:underline">
+                      Open public page
+                    </Link>
+                  ) : (
+                    <span className="text-xs text-zinc-400">Public page unavailable</span>
+                  )}
+                </span>
               </li>
             );
           })}

@@ -110,14 +110,21 @@ export default async function AdminOfferingDetailPage({ params }: Props) {
             href={`/p/${offeringSlug}`}
             className="rounded-lg border border-zinc-300 bg-white px-3 py-2 font-medium text-zinc-800 hover:bg-zinc-50"
           >
-            Public page
+            Open public page
           </Link>
-        ) : null}
+        ) : (
+          <span
+            className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50 px-3 py-2 font-medium text-zinc-400"
+            title="Offering is private"
+          >
+            Public page unavailable
+          </span>
+        )}
         <Link
           href={`/offerings/${offeringSlug}`}
           className="rounded-lg border border-zinc-300 bg-white px-3 py-2 font-medium text-zinc-800 hover:bg-zinc-50"
         >
-          Private overview
+          Open private overview
         </Link>
       </div>
 
@@ -173,13 +180,14 @@ export default async function AdminOfferingDetailPage({ params }: Props) {
           <p className="mt-1">Git commits / GitHub API workflow (not implemented).</p>
         </div>
         <div className={placeholderCard}>
-          <p className="font-medium text-zinc-800">Preview</p>
+          <p className="font-medium text-zinc-800">Preview fidelity</p>
           <p className="mt-1">
-            Skeleton: per-lesson MDX preview at{" "}
+            Per-lesson preview exists at{" "}
             <code className="rounded bg-zinc-100 px-1 text-xs">
               /admin/offerings/…/lessons/…/preview
             </code>{" "}
-            (temporary HTML serialization; full-fidelity preview planned — see docs/admin-authoring.md).
+            (HTML serialization for admin review). Full-fidelity, production-identical preview is planned — see{" "}
+            <span className="font-medium text-zinc-700">docs/admin-authoring.md</span>.
           </p>
         </div>
       </section>
