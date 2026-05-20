@@ -1,15 +1,24 @@
 import yaml from "yaml";
 
+/** Written to disk — always includes base hash for conflict detection (Phase 3B). */
 export type DraftFrontmatterFields = {
   updatedAt: string;
   updatedBy: string;
+  baseHash: string;
+};
+
+/** Parsed from disk — legacy drafts may omit baseHash until re-saved. */
+export type DraftFrontmatterParsed = {
+  updatedAt: string;
+  updatedBy: string;
+  baseHash?: string;
 };
 
 /**
  * Strict parse: file must start with `---`, YAML, closing `---`, then the MDX body.
  * Strips one leading newline after the closing `---` (matches {@link serializeDraftMdxFile}).
  */
-export function parseDraftMdxFile(raw: string): { meta: DraftFrontmatterFields; body: string } {
+export function parseDraftMdxFile(raw: string): { meta: DraftFrontmatterParsed; body: string } {
   const text = raw.replace(/^\uFEFF/, "");
   const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/;
   const m = text.match(FRONTMATTER_RE);
@@ -44,10 +53,19 @@ export function parseDraftMdxFile(raw: string): { meta: DraftFrontmatterFields; 
     throw new Error('Draft frontmatter requires non-empty string field "updatedBy".');
   }
 
-  return {
-    meta: { updatedAt: updatedAt.trim(), updatedBy: updatedBy.trim() },
-    body,
+  const baseHashRaw = o.baseHash;
+  const baseHash =
+    typeof baseHashRaw === "string" && baseHashRaw.trim() ? baseHashRaw.trim() : undefined;
+
+  const meta: DraftFrontmatterParsed = {
+    updatedAt: updatedAt.trim(),
+    updatedBy: updatedBy.trim(),
   };
+  if (baseHash !== undefined) {
+    meta.baseHash = baseHash;
+  }
+
+  return { meta, body };
 }
 
 export function serializeDraftMdxFile(meta: DraftFrontmatterFields, body: string): string {
@@ -55,6 +73,7 @@ export function serializeDraftMdxFile(meta: DraftFrontmatterFields, body: string
     .stringify({
       updatedAt: meta.updatedAt,
       updatedBy: meta.updatedBy,
+      baseHash: meta.baseHash,
     })
     .trimEnd();
   return `---\n${yamlBlock}\n---\n\n${body}`;

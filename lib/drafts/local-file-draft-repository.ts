@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { parseDraftMdxFile, serializeDraftMdxFile } from "@/lib/drafts/draft-frontmatter";
 import { sanitizeDraftEmailBasename } from "@/lib/drafts/email-filename";
+import { hashPublishedMdxSource } from "@/lib/drafts/source-hash";
 import type { DraftRecord, DraftRepository, DraftStored, DraftTarget } from "@/lib/drafts/types";
 import { isSafeSlug } from "@/lib/slug";
 import { normalizeEmail } from "@/lib/students";
@@ -64,18 +65,34 @@ export class LocalFileDraftRepository implements DraftRepository {
       source: body,
       updatedAt: meta.updatedAt,
       updatedBy: meta.updatedBy,
+      baseHash: meta.baseHash?.trim() ? meta.baseHash.trim() : null,
     };
   }
 
-  saveDraft(target: DraftTarget, adminEmail: string, source: string): void {
+  saveDraft(target: DraftTarget, adminEmail: string, source: string, publishedSourceBody: string): void {
     const norm = normalizeEmail(adminEmail);
     const fp = this.draftFilePath(target, adminEmail);
     fs.mkdirSync(path.dirname(fp), { recursive: true });
+
+    let baseHash = hashPublishedMdxSource(publishedSourceBody);
+    if (fs.existsSync(fp)) {
+      try {
+        const raw = fs.readFileSync(fp, "utf8");
+        const { meta } = parseDraftMdxFile(raw);
+        if (meta.baseHash?.trim()) {
+          baseHash = meta.baseHash.trim();
+        }
+      } catch {
+        /* new draft or corrupt file — keep computed baseHash */
+      }
+    }
+
     const iso = new Date().toISOString();
     const file = serializeDraftMdxFile(
       {
         updatedAt: iso,
         updatedBy: norm,
+        baseHash,
       },
       source
     );
@@ -138,6 +155,7 @@ export class LocalFileDraftRepository implements DraftRepository {
               source: body,
               updatedAt: meta.updatedAt,
               updatedBy: meta.updatedBy,
+              baseHash: meta.baseHash?.trim() ? meta.baseHash.trim() : null,
             });
           } catch {
             /* skip corrupt draft files */

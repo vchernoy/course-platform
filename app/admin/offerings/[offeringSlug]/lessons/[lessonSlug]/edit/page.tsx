@@ -4,7 +4,7 @@ import { forbidden, notFound } from "next/navigation";
 import { AdminMdxDraftEditor } from "@/components/admin/AdminMdxDraftEditor";
 import { canAdminAccessOffering } from "@/lib/admin-auth";
 import { getCurrentUserEmail } from "@/lib/authz";
-import { getLocalFileDraftRepository } from "@/lib/drafts";
+import { getDraftStatus, getLocalFileDraftRepository } from "@/lib/drafts";
 import type { LessonMdxPreviewSerialization } from "@/lib/mdx-lesson-preview-serialize";
 import { serializeLessonMdxPreviewHtml } from "@/lib/mdx-lesson-preview-serialize";
 import { loadOfferingResources } from "@/lib/offering-resources";
@@ -55,7 +55,7 @@ export default async function AdminLessonDraftEditPage({ params }: Props) {
   }
 
   const email = await getCurrentUserEmail();
-  if (!canAdminAccessOffering(email, offeringSlug)) {
+  if (!email || !canAdminAccessOffering(email, offeringSlug)) {
     forbidden();
   }
 
@@ -72,16 +72,25 @@ export default async function AdminLessonDraftEditPage({ params }: Props) {
   }
 
   const publishedSource = loadLessonSource(offeringSlug, hit.moduleSlug, lessonSlug);
-  const draft = email
-    ? getLocalFileDraftRepository().getDraft(
-        {
-          kind: "offeringLesson",
-          parentSlug: offeringSlug,
-          pageOrLessonSlug: lessonSlug,
-        },
-        email
-      )
-    : null;
+  const draft = getLocalFileDraftRepository().getDraft(
+    {
+      kind: "offeringLesson",
+      parentSlug: offeringSlug,
+      pageOrLessonSlug: lessonSlug,
+    },
+    email
+  );
+
+  const draftStatus = getDraftStatus(
+    {
+      kind: "offeringLesson",
+      parentSlug: offeringSlug,
+      pageOrLessonSlug: lessonSlug,
+    },
+    email,
+    publishedSource,
+    getLocalFileDraftRepository()
+  );
 
   const editorSource = draft?.source ?? publishedSource;
   const { videos, resources } = loadRegistriesSafe(offeringSlug);
@@ -136,27 +145,32 @@ export default async function AdminLessonDraftEditPage({ params }: Props) {
             >
               Preview-only page
             </Link>{" "}
-            always starts from published Git source.
+            always starts from published Git source. Use{" "}
+            <span className="font-medium text-zinc-800">Publish locally</span> below to write back to{" "}
+            <code className="rounded bg-zinc-100 px-1 text-xs">content/offerings/</code> (dev/self-hosted only).
           </>
         ) : (
           <>
-            No local draft yet — editing published source from disk. Save draft stores under{" "}
-            <code className="rounded bg-zinc-100 px-1 text-xs">.data/drafts/</code> only.
+            No local draft yet — textarea shows published source. Save draft stores under{" "}
+            <code className="rounded bg-zinc-100 px-1 text-xs">.data/drafts/</code>; publish overwrites only this lesson
+            MDX under <code className="rounded bg-zinc-100 px-1 text-xs">content/offerings/</code>.
           </>
         )}
       </p>
 
       <div className="mt-10">
         <AdminMdxDraftEditor
-          key={draft ? `draft:${draft.updatedAt}` : "published"}
+          key={`${draft ? `draft:${draft.updatedAt}` : "published"}:${draftStatus.currentHash}:${draftStatus.baseHash ?? "nobase"}`}
           variant="lesson"
           offeringSlug={offeringSlug}
           lessonSlug={lessonSlug}
           initialSource={editorSource}
           initialPreview={initialPreview}
+          draftStatus={draftStatus}
           helpText={
-            "Save draft writes YAML-frontmatter MDX under .data/drafts (development / self-hosted only; not durable on typical serverless hosts). " +
-            "Preview uses temporary HTML serialization — see docs/admin-authoring.md. Published files in content/offerings are never modified here."
+            "Save draft stores YAML-frontmatter under .data/drafts with a base hash of the published file (Phase 3B). " +
+            "Publish locally overwrites only this lesson .mdx under content/offerings when the hash still matches — server rechecks every time; not for typical serverless production. " +
+            "No Git commit. See docs/admin-authoring.md."
           }
         />
       </div>

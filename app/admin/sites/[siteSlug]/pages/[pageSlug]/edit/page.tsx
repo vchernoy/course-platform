@@ -4,7 +4,7 @@ import { forbidden, notFound } from "next/navigation";
 import { AdminMdxDraftEditor } from "@/components/admin/AdminMdxDraftEditor";
 import { canAdminAccessSite } from "@/lib/admin-auth";
 import { getCurrentUserEmail } from "@/lib/authz";
-import { getLocalFileDraftRepository } from "@/lib/drafts";
+import { getDraftStatus, getLocalFileDraftRepository } from "@/lib/drafts";
 import type { SiteMdxPreviewSerialization } from "@/lib/mdx-site-preview-serialize";
 import { serializeSiteMdxPreviewHtml } from "@/lib/mdx-site-preview-serialize";
 import { listSitePageSlugs, loadSite, loadSitePageSource } from "@/lib/sites";
@@ -37,7 +37,7 @@ export default async function AdminSitePageDraftEditPage({ params }: Props) {
   }
 
   const email = await getCurrentUserEmail();
-  if (!canAdminAccessSite(email, siteSlug)) {
+  if (!email || !canAdminAccessSite(email, siteSlug)) {
     forbidden();
   }
 
@@ -54,16 +54,25 @@ export default async function AdminSitePageDraftEditPage({ params }: Props) {
   }
 
   const publishedSource = loadSitePageSource(siteSlug, pageSlug);
-  const draft = email
-    ? getLocalFileDraftRepository().getDraft(
-        {
-          kind: "sitePage",
-          parentSlug: siteSlug,
-          pageOrLessonSlug: pageSlug,
-        },
-        email
-      )
-    : null;
+  const draft = getLocalFileDraftRepository().getDraft(
+    {
+      kind: "sitePage",
+      parentSlug: siteSlug,
+      pageOrLessonSlug: pageSlug,
+    },
+    email
+  );
+
+  const draftStatus = getDraftStatus(
+    {
+      kind: "sitePage",
+      parentSlug: siteSlug,
+      pageOrLessonSlug: pageSlug,
+    },
+    email,
+    publishedSource,
+    getLocalFileDraftRepository()
+  );
 
   const editorSource = draft?.source ?? publishedSource;
 
@@ -100,27 +109,33 @@ export default async function AdminSitePageDraftEditPage({ params }: Props) {
         {draft ? (
           <>
             Showing your <span className="font-medium text-zinc-800">local draft</span> (updated{" "}
-            {draft.updatedAt}).
+            {draft.updatedAt}).{" "}
+            <span className="font-medium text-zinc-800">Publish locally</span> writes this page MDX back to{" "}
+            <code className="rounded bg-zinc-100 px-1 text-xs">content/sites/</code> when the base hash matches
+            (dev/self-hosted only).
           </>
         ) : (
           <>
-            No local draft yet — editing published source from disk. Save draft stores under{" "}
-            <code className="rounded bg-zinc-100 px-1 text-xs">.data/drafts/</code> only.
+            No local draft yet — textarea shows published source. Save draft under{" "}
+            <code className="rounded bg-zinc-100 px-1 text-xs">.data/drafts/</code>; publish overwrites only this{" "}
+            <code className="rounded bg-zinc-100 px-1 text-xs">pages/*.mdx</code> file.
           </>
         )}
       </p>
 
       <div className="mt-10">
         <AdminMdxDraftEditor
-          key={draft ? `draft:${draft.updatedAt}` : "published"}
+          key={`${draft ? `draft:${draft.updatedAt}` : "published"}:${draftStatus.currentHash}:${draftStatus.baseHash ?? "nobase"}`}
           variant="site"
           siteSlug={siteSlug}
           pageSlug={pageSlug}
           initialSource={editorSource}
           initialPreview={initialPreview}
+          draftStatus={draftStatus}
           helpText={
-            "Save draft writes YAML-frontmatter MDX under .data/drafts (development / self-hosted only; not durable on typical serverless hosts). " +
-            "Preview uses compileSitePageMdx plus temporary HTML serialization — see docs/admin-authoring.md. Published files in content/sites are never modified here."
+            "Save draft stores YAML-frontmatter under .data/drafts with a base hash of the published file (Phase 3B). " +
+            "Publish locally overwrites only this page .mdx under content/sites when the hash still matches — server rechecks every time; not for typical serverless production. " +
+            "No Git commit. See docs/admin-authoring.md."
           }
         />
       </div>

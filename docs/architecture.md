@@ -83,7 +83,7 @@ A **site** is a directory under **`content/sites/<siteSlug>/`** with **`site.yam
 
 The reserved URL segment **`search`** is documented with slug rules in [Content layout — Slug rules](./content-layout.md#slug-rules).
 
-## Admin authoring (scaffolding + Phase 3A drafts)
+## Admin authoring (scaffolding + local drafts + Phase 3B publish)
 
 - **Routes:** **`/admin`**, **`/admin/offerings`**, **`/admin/offerings/[offeringSlug]`**, **`/admin/offerings/[offeringSlug]/lessons/[lessonSlug]/preview`**, **`/admin/offerings/[offeringSlug]/lessons/[lessonSlug]/edit`**, **`/admin/sites`**, **`/admin/sites/[siteSlug]`**, **`/admin/sites/[siteSlug]/pages/[pageSlug]/edit`** ([`app/admin/`](../app/admin/)).
 - **Auth:** Clerk (middleware) plus **[`config/admins.yaml`](../config/admins.yaml)** — offering-scoped **`owner`** \| **`editor`** \| **`viewer`** rows and optional **site-scoped** **`sites`** (omit → no site admin access). Route handlers and server actions should use [`lib/admin-auth.ts`](../lib/admin-auth.ts) (`canAdminAccessOffering`, `canAdminAccessSite`, etc.). **`"*"`** in `offerings` or `sites` means all entries of that kind (typical for owners).
@@ -91,11 +91,11 @@ The reserved URL segment **`search`** is documented with slug rules in [Content 
 - **Lesson MDX compile:** shared helper [`lib/mdx-lesson-compile.tsx`](../lib/mdx-lesson-compile.tsx) keeps learner and admin preview on the same remark/rehype + component map; admin-only HTML serialization lives in [`lib/mdx-lesson-preview-serialize.tsx`](../lib/mdx-lesson-preview-serialize.tsx) (temporary skeleton — [Admin authoring](./admin-authoring.md)).
 - **Site MDX preview (admin):** [`lib/mdx-site-preview-serialize.tsx`](../lib/mdx-site-preview-serialize.tsx) mirrors the lesson preview pattern for **`compileSitePageMdx`** output.
 
-### Draft persistence (Phase 3A, local only)
+### Draft persistence and local publish (Phase 3A–3B, dev / self-hosted)
 
-- **Published** lessons and site pages remain under **`content/`** (Git / filesystem). Nothing in the edit UI writes there.
-- **Per-admin drafts** default to **`.data/drafts/`** via [`LocalFileDraftRepository`](../lib/drafts/local-file-draft-repository.ts) ([`DraftRepository`](../lib/drafts/types.ts)). Files use YAML frontmatter + MDX body ([`lib/drafts/draft-frontmatter.ts`](../lib/drafts/draft-frontmatter.ts)).
-- **Operational caveat:** this is for **development / self-hosted** setups with a stable writable disk. **Do not rely on it for durable storage on typical serverless platforms** (ephemeral filesystem). Future **`DatabaseDraftRepository`** / **`GitHubDraftRepository`** can replace the default implementation without changing the abstraction.
+- **Published** lessons and site pages live under **`content/`**. **Save draft** writes **only** **`.data/drafts/`**. **Publish locally** (server actions) may overwrite **one** target **`content/***.mdx`** after re-reading draft + published file and verifying **`baseHash`** (SHA-256 of published body at draft creation) still matches — **no YAML/asset changes**, **no Git commit**. Client UI may hint “stale”; **authorization and conflict checks are always enforced on the server** ([`lib/drafts/publish-local.ts`](../lib/drafts/publish-local.ts), [`lib/draft-lesson-actions.ts`](../lib/draft-lesson-actions.ts), [`lib/draft-site-actions.ts`](../lib/draft-site-actions.ts)).
+- **Per-admin drafts** use [`LocalFileDraftRepository`](../lib/drafts/local-file-draft-repository.ts) ([`DraftRepository`](../lib/drafts/types.ts)); frontmatter + MDX body ([`lib/drafts/draft-frontmatter.ts`](../lib/drafts/draft-frontmatter.ts)).
+- **Operational caveat:** durable storage for drafts and multi-instance safety are **not** goals here. **Do not rely on this stack for production authoring on typical serverless hosts.** Future **`DatabaseDraftRepository`** / **GitHub-backed publish** can reuse the same hash rule.
 
 Full roadmap (preview pipeline, Git publishing, future DB/repo backends): [Admin authoring](./admin-authoring.md).
 

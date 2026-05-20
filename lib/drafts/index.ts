@@ -15,7 +15,15 @@ export {
   parseDraftMdxFile,
   serializeDraftMdxFile,
   type DraftFrontmatterFields,
+  type DraftFrontmatterParsed,
 } from "@/lib/drafts/draft-frontmatter";
+export { getDraftStatus, type DraftStatus } from "@/lib/drafts/draft-status";
+export { hashPublishedMdxSource } from "@/lib/drafts/source-hash";
+export {
+  assertWritablePublishedMdxPath,
+  tryPublishLocalDraft,
+} from "@/lib/drafts/publish-local";
+export { CONFLICT_MSG } from "@/lib/drafts/publish-messages";
 
 let singleton: LocalFileDraftRepository | null = null;
 

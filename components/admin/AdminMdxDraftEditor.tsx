@@ -2,14 +2,29 @@
 
 import { previewLessonMdxAction } from "@/lib/admin-preview-lesson-action";
 import { previewSiteMdxAction } from "@/lib/admin-preview-site-action";
-import { discardLessonDraftAction, saveLessonDraftAction } from "@/lib/draft-lesson-actions";
-import { discardSitePageDraftAction, saveSitePageDraftAction } from "@/lib/draft-site-actions";
+import {
+  discardLessonDraftAction,
+  publishLessonDraftLocally,
+  saveLessonDraftAction,
+} from "@/lib/draft-lesson-actions";
+import {
+  discardSitePageDraftAction,
+  publishSitePageDraftLocally,
+  saveSitePageDraftAction,
+} from "@/lib/draft-site-actions";
+import type { DraftStatus } from "@/lib/drafts/draft-status";
+import { CONFLICT_MSG } from "@/lib/drafts/publish-messages";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 export type AdminMdxPreviewResult =
   | { ok: true; html: string }
   | { ok: false; error: string };
+
+function shortHash(hex: string): string {
+  if (hex.length <= 12) return hex;
+  return `${hex.slice(0, 8)}…${hex.slice(-4)}`;
+}
 
 export type AdminMdxDraftEditorProps =
   | {
@@ -18,6 +33,7 @@ export type AdminMdxDraftEditorProps =
       lessonSlug: string;
       initialSource: string;
       initialPreview: AdminMdxPreviewResult;
+      draftStatus: DraftStatus;
       previewLabel?: string;
       sourceHeading?: string;
       helpText: string;
@@ -28,6 +44,7 @@ export type AdminMdxDraftEditorProps =
       pageSlug: string;
       initialSource: string;
       initialPreview: AdminMdxPreviewResult;
+      draftStatus: DraftStatus;
       previewLabel?: string;
       sourceHeading?: string;
       helpText: string;
@@ -37,6 +54,7 @@ export function AdminMdxDraftEditor(props: AdminMdxDraftEditorProps) {
   const {
     initialSource,
     initialPreview,
+    draftStatus,
     previewLabel = "Preview",
     sourceHeading = "MDX source",
     helpText,
@@ -48,6 +66,10 @@ export function AdminMdxDraftEditor(props: AdminMdxDraftEditorProps) {
   const [notice, setNotice] = useState<string | null>(null);
   const [noticeTone, setNoticeTone] = useState<"ok" | "err">("ok");
   const [pending, startTransition] = useTransition();
+
+  const editingDraft = draftStatus.hasDraft;
+  const publishDisabledInUi =
+    !draftStatus.hasDraft || draftStatus.isStale || draftStatus.baseHash === null;
 
   function runPreview() {
     setNotice(null);
@@ -103,8 +125,82 @@ export function AdminMdxDraftEditor(props: AdminMdxDraftEditorProps) {
     });
   }
 
+  function runPublish() {
+    if (
+      !window.confirm(
+        "Overwrite the published MDX file under content/ with this draft and delete the draft? This does not create a Git commit."
+      )
+    ) {
+      return;
+    }
+    setNotice(null);
+    startTransition(() => {
+      const promise =
+        props.variant === "lesson"
+          ? publishLessonDraftLocally(props.offeringSlug, props.lessonSlug)
+          : publishSitePageDraftLocally(props.siteSlug, props.pageSlug);
+      void promise.then((r) => {
+        if (!r.ok) {
+          setNoticeTone("err");
+          setNotice(r.error);
+          return;
+        }
+        setNoticeTone("ok");
+        setNotice("Published locally: content MDX updated and draft removed.");
+        router.refresh();
+      });
+    });
+  }
+
   return (
     <div className="space-y-8">
+      <section
+        aria-label="Draft status"
+        className="rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-800 shadow-sm"
+      >
+        <p className="font-medium text-zinc-900">Source</p>
+        <p className="mt-1 text-zinc-600">
+          {editingDraft ? (
+            <>
+              Editing <span className="font-medium text-zinc-800">local draft</span> (textarea reflects draft body when
+              saved).
+            </>
+          ) : (
+            <>
+              Editing <span className="font-medium text-zinc-800">published file</span> from disk — save a draft to
+              snapshot base hash for publish.
+            </>
+          )}
+        </p>
+        {draftStatus.hasDraft ? (
+          <dl className="mt-3 grid gap-2 text-xs text-zinc-600 sm:grid-cols-2">
+            <div>
+              <dt className="font-medium text-zinc-500">Draft updated</dt>
+              <dd>{draftStatus.updatedAt}</dd>
+            </div>
+            <div>
+              <dt className="font-medium text-zinc-500">Draft author</dt>
+              <dd>{draftStatus.updatedBy}</dd>
+            </div>
+            <div>
+              <dt className="font-medium text-zinc-500">Published hash (current)</dt>
+              <dd className="font-mono">{shortHash(draftStatus.currentHash)}</dd>
+            </div>
+            <div>
+              <dt className="font-medium text-zinc-500">Draft base hash</dt>
+              <dd className="font-mono">
+                {draftStatus.baseHash ? shortHash(draftStatus.baseHash) : "— (save draft again)"}
+              </dd>
+            </div>
+          </dl>
+        ) : null}
+        {draftStatus.hasDraft && draftStatus.isStale ? (
+          <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950">
+            {draftStatus.baseHash ? CONFLICT_MSG : "Draft predates base-hash metadata. Save the draft again before publishing."}
+          </p>
+        ) : null}
+      </section>
+
       {notice ? (
         <div
           role="status"
@@ -131,6 +227,21 @@ export function AdminMdxDraftEditor(props: AdminMdxDraftEditorProps) {
               className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50 disabled:opacity-60"
             >
               Discard draft
+            </button>
+            <button
+              type="button"
+              onClick={runPublish}
+              disabled={pending || publishDisabledInUi}
+              title={
+                publishDisabledInUi
+                  ? draftStatus.hasDraft && draftStatus.isStale
+                    ? CONFLICT_MSG
+                    : "Save a draft with base hash before publishing."
+                  : undefined
+              }
+              className="rounded-lg border border-emerald-600 bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Publish locally
             </button>
             <button
               type="button"
