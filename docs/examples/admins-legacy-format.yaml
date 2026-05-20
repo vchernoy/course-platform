@@ -1,0 +1,53 @@
+# Reference only — NOT loaded by the app. This file mirrors the legacy
+# role + offerings (+ optional sites) shape that `config/admins.yaml` used before
+# migrating to `assignments`. Kept for comparison and documentation.
+#
+# See: docs/admin-authoring.md (Legacy section)
+# Live config: config/admins.yaml
+
+# Placeholder entries only — replace emails with real admins per environment.
+# Roles: owner | editor | viewer
+# offerings: non-empty; "*" means all offerings under content/offerings/<slug>/
+# sites (optional): when omitted, this admin has no site admin UI access.
+#   When set: non-empty; "*" alone means all sites under content/sites/<slug>/
+
+admins:
+  - email: vchernoy@gmail.com
+    role: owner
+    offerings:
+      - "*"
+    sites:
+      - "*"
+
+  - email: vchernoy2@gmail.com
+    role: editor
+    offerings:
+      - "*"
+    sites:
+      - "*"
+
+  - email: alenatravel@gmail.com
+    role: editor
+    offerings:
+      - "*"
+    sites:
+      - "*"
+
+  - email: natalya.fominykh@gmail.com
+    role: editor
+    offerings:
+      - "*"
+    sites:
+      - "*"
+
+  - email: instructor@example.com
+    role: editor
+    offerings:
+      - investing-basics-2026-05
+    sites:
+      - demo-site
+
+  - email: assistant@example.com
+    role: viewer
+    offerings:
+      - roth-ira-webinar-2026-04

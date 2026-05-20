@@ -33,42 +33,122 @@ const sample: AdminsConfig = validateAdminsContent({
   ],
 });
 
-describe("getAdminAccessFromConfig", () => {
+describe("getAdminAccessFromConfig (legacy schema normalized)", () => {
   it("resolves owner with wildcard offerings and sites", () => {
     const a = getAdminAccessFromConfig(sample, "owner@example.com");
-    assert.deepEqual(a, {
-      role: "owner",
-      allOfferings: true,
-      offeringSlugs: [],
-      allSites: true,
-      siteSlugs: [],
-    });
+    assert.ok(a);
+    assert.equal(a.role, "owner");
+    assert.equal(a.assignments.length, 2);
+    assert.ok(a.assignments.some((x) => x.scope.type === "wildcard_offerings"));
+    assert.ok(a.assignments.some((x) => x.scope.type === "wildcard_sites"));
   });
 
-  it("dedupes explicit offering slugs", () => {
+  it("dedupes explicit offering slugs into one assignment shape", () => {
     const a = getAdminAccessFromConfig(sample, "editor@example.com");
-    assert.deepEqual(a, {
-      role: "editor",
-      allOfferings: false,
-      offeringSlugs: ["investing-basics-2026-05"],
-      allSites: false,
-      siteSlugs: ["demo-site"],
-    });
+    assert.ok(a);
+    assert.equal(a.role, "editor");
+    const offerings = a.assignments.filter((x) => x.scope.type === "offering");
+    assert.equal(offerings.length, 1);
+    assert.equal(
+      offerings[0]!.scope.type === "offering" ? offerings[0]!.scope.slug : "",
+      "investing-basics-2026-05"
+    );
   });
 
-  it("omitted sites means no site scope", () => {
+  it("omitted sites means no wildcard_sites assignments", () => {
     const a = getAdminAccessFromConfig(sample, "assistant@example.com");
-    assert.deepEqual(a, {
-      role: "viewer",
-      allOfferings: false,
-      offeringSlugs: ["roth-ira-webinar-2026-04"],
-      allSites: false,
-      siteSlugs: [],
-    });
+    assert.ok(a);
+    assert.equal(a.role, "viewer");
+    assert.ok(a.assignments.some((x) => x.scope.type === "offering"));
+    assert.ok(!a.assignments.some((x) => x.scope.type === "wildcard_sites" || x.scope.type === "site"));
   });
 
   it("returns null for unknown email", () => {
     assert.equal(getAdminAccessFromConfig(sample, "nobody@example.com"), null);
+  });
+});
+
+describe("assignments-only schema", () => {
+  const platformCfg = validateAdminsContent({
+    admins: [
+      {
+        email: "pat@example.com",
+        assignments: [{ role: "owner", scope: { type: "platform" } }],
+      },
+    ],
+  });
+
+  it("platform owner sees all offerings and sites", () => {
+    assert.equal(
+      canAdminAccessOfferingFromConfig(platformCfg, "pat@example.com", "anything-goes"),
+      true
+    );
+    assert.deepEqual(
+      listAdminAllowedOfferingSlugsFromConfig(platformCfg, "pat@example.com", ["a", "b"]),
+      ["a", "b"]
+    );
+    assert.equal(canAdminAccessSiteFromConfig(platformCfg, "pat@example.com", "z-site"), true);
+    assert.deepEqual(
+      listAdminAllowedSiteSlugsFromConfig(platformCfg, "pat@example.com", ["z", "y"]),
+      ["z", "y"]
+    );
+  });
+
+  const offeringScoped = validateAdminsContent({
+    admins: [
+      {
+        email: "off@example.com",
+        assignments: [
+          {
+            role: "editor",
+            scope: { type: "offering", slug: "only-this-offering" },
+          },
+        ],
+      },
+    ],
+  });
+
+  it("offering scoped editor sees only that offering", () => {
+    assert.equal(
+      canAdminAccessOfferingFromConfig(offeringScoped, "off@example.com", "only-this-offering"),
+      true
+    );
+    assert.equal(
+      canAdminAccessOfferingFromConfig(offeringScoped, "off@example.com", "other"),
+      false
+    );
+    assert.deepEqual(
+      listAdminAllowedOfferingSlugsFromConfig(offeringScoped, "off@example.com", ["only-this-offering", "x"]),
+      ["only-this-offering"]
+    );
+    assert.equal(canAdminAccessSiteFromConfig(offeringScoped, "off@example.com", "any"), false);
+    assert.deepEqual(
+      listAdminAllowedSiteSlugsFromConfig(offeringScoped, "off@example.com", ["s1"]),
+      []
+    );
+  });
+
+  const siteScoped = validateAdminsContent({
+    admins: [
+      {
+        email: "sites@example.com",
+        assignments: [{ role: "editor", scope: { type: "site", slug: "only-this-site" } }],
+      },
+    ],
+  });
+
+  it("site scoped editor sees only that site", () => {
+    assert.equal(canAdminAccessOfferingFromConfig(siteScoped, "sites@example.com", "any"), false);
+    assert.deepEqual(
+      listAdminAllowedOfferingSlugsFromConfig(siteScoped, "sites@example.com", ["a"]),
+      []
+    );
+    assert.equal(canAdminAccessSiteFromConfig(siteScoped, "sites@example.com", "only-this-site"), true);
+    assert.equal(canAdminAccessSiteFromConfig(siteScoped, "sites@example.com", "other"), false);
+    assert.deepEqual(
+      listAdminAllowedSiteSlugsFromConfig(siteScoped, "sites@example.com", ["only-this-site", "x"]),
+      ["only-this-site"]
+    );
   });
 });
 
@@ -122,10 +202,7 @@ describe("canAdminAccessSiteFromConfig", () => {
 describe("listAdminAllowedOfferingSlugsFromConfig", () => {
   it("returns full ordered list for wildcard", () => {
     assert.deepEqual(
-      listAdminAllowedOfferingSlugsFromConfig(sample, "owner@example.com", [
-        "b-slug",
-        "a-slug",
-      ]),
+      listAdminAllowedOfferingSlugsFromConfig(sample, "owner@example.com", ["b-slug", "a-slug"]),
       ["b-slug", "a-slug"]
     );
   });
@@ -141,10 +218,7 @@ describe("listAdminAllowedOfferingSlugsFromConfig", () => {
   });
 
   it("returns empty when not admin", () => {
-    assert.deepEqual(
-      listAdminAllowedOfferingSlugsFromConfig(sample, "x@example.com", ["a"]),
-      []
-    );
+    assert.deepEqual(listAdminAllowedOfferingSlugsFromConfig(sample, "x@example.com", ["a"]), []);
   });
 });
 
@@ -164,24 +238,20 @@ describe("listAdminAllowedSiteSlugsFromConfig", () => {
   });
 
   it("returns empty when admin has no sites scope", () => {
-    assert.deepEqual(
-      listAdminAllowedSiteSlugsFromConfig(sample, "assistant@example.com", ["demo-site"]),
-      []
-    );
+    assert.deepEqual(listAdminAllowedSiteSlugsFromConfig(sample, "assistant@example.com", ["demo-site"]), []);
   });
 });
 
 describe("validateAdminsContent", () => {
-  it("accepts minimal valid config", () => {
+  it("accepts minimal valid legacy config", () => {
     const cfg = validateAdminsContent({
       admins: [{ email: "a@example.com", role: "viewer", offerings: ["some-slug"] }],
     });
     assert.equal(cfg.admins.length, 1);
-    assert.equal(cfg.admins[0]!.allSites, false);
-    assert.deepEqual(cfg.admins[0]!.siteSlugs, []);
+    assert.ok(!cfg.admins[0]!.assignments.some((x) => x.scope.type === "wildcard_sites"));
   });
 
-  it("rejects invalid role", () => {
+  it("rejects invalid role (legacy)", () => {
     assert.throws(
       () =>
         validateAdminsContent({
@@ -191,7 +261,64 @@ describe("validateAdminsContent", () => {
     );
   });
 
-  it("rejects empty offerings", () => {
+  it("rejects mixing assignments with legacy keys", () => {
+    assert.throws(
+      () =>
+        validateAdminsContent({
+          admins: [
+            {
+              email: "a@example.com",
+              role: "owner",
+              offerings: ["*"],
+              assignments: [{ role: "viewer", scope: { type: "platform" } }],
+            },
+          ],
+        }),
+      /not both/
+    );
+  });
+
+  it("rejects platform scope with slug", () => {
+    assert.throws(
+      () =>
+        validateAdminsContent({
+          admins: [
+            {
+              email: "a@example.com",
+              assignments: [{ role: "owner", scope: { type: "platform", slug: "nope" } }],
+            },
+          ],
+        }),
+      /slug must not be set/
+    );
+  });
+
+  it("rejects offering assignment without slug", () => {
+    assert.throws(
+      () =>
+        validateAdminsContent({
+          admins: [{ email: "a@example.com", assignments: [{ role: "editor", scope: { type: "offering" } }] }],
+        }),
+      /slug is required.*offering/
+    );
+  });
+
+  it("rejects unknown scope type in assignments", () => {
+    assert.throws(
+      () =>
+        validateAdminsContent({
+          admins: [
+            {
+              email: "a@example.com",
+              assignments: [{ role: "editor", scope: { type: "page", slug: "x" } }],
+            },
+          ],
+        } as unknown),
+      /must be platform/
+    );
+  });
+
+  it("rejects empty offerings (legacy)", () => {
     assert.throws(
       () =>
         validateAdminsContent({
@@ -201,7 +328,7 @@ describe("validateAdminsContent", () => {
     );
   });
 
-  it("rejects mix of star and slugs in offerings", () => {
+  it("rejects mix of star and slugs in offerings (legacy)", () => {
     assert.throws(
       () =>
         validateAdminsContent({
@@ -224,7 +351,7 @@ describe("validateAdminsContent", () => {
     );
   });
 
-  it("rejects invalid offering slug entry", () => {
+  it("rejects invalid offering slug entry (legacy)", () => {
     assert.throws(
       () =>
         validateAdminsContent({
@@ -234,7 +361,7 @@ describe("validateAdminsContent", () => {
     );
   });
 
-  it("rejects empty sites when key is set", () => {
+  it("rejects empty sites when key is set (legacy)", () => {
     assert.throws(
       () =>
         validateAdminsContent({
@@ -244,7 +371,7 @@ describe("validateAdminsContent", () => {
     );
   });
 
-  it("rejects mix of star and slugs in sites", () => {
+  it("rejects mix of star and slugs in sites (legacy)", () => {
     assert.throws(
       () =>
         validateAdminsContent({
@@ -254,7 +381,7 @@ describe("validateAdminsContent", () => {
     );
   });
 
-  it("rejects invalid site slug entry", () => {
+  it("rejects invalid site slug entry (legacy)", () => {
     assert.throws(
       () =>
         validateAdminsContent({

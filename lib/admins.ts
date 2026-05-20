@@ -6,28 +6,37 @@ import { normalizeEmail } from "@/lib/students";
 
 export type AdminRole = "owner" | "editor" | "viewer";
 
+/** Scopes authored in YAML under `assignments[].scope`. */
+export type YamlAdminScope =
+  | { type: "platform" }
+  | { type: "offering"; slug: string }
+  | { type: "site"; slug: string };
+
+/**
+ * Parsed scope after validation. Includes legacy-only rows used only when normalizing
+ * `offerings` / `sites` with `"*"` (independent wildcard axes).
+ */
+export type AdminAssignmentScope =
+  | YamlAdminScope
+  | { type: "wildcard_offerings" }
+  | { type: "wildcard_sites" };
+
+export type AdminAssignment = {
+  role: AdminRole;
+  scope: AdminAssignmentScope;
+};
+
 export type AdminEntry = {
   email: string;
-  role: AdminRole;
-  /** Explicit slugs when `allOfferings` is false (no "*" row). */
-  offeringSlugs: string[];
-  /** True when config listed "*" as the only offerings pattern. */
-  allOfferings: boolean;
-  /** Explicit site slugs when `allSites` is false; omitted in YAML → no site access. */
-  siteSlugs: string[];
-  /** True when config listed "*" as the only `sites` pattern. */
-  allSites: boolean;
+  assignments: readonly AdminAssignment[];
 };
 
 export type AdminsConfig = { admins: AdminEntry[] };
 
-/** Resolved access for an admin row (after load/validation). */
+/** Resolved access for an admin row (normalized assignments plus merged role). */
 export type AdminAccess = {
   role: AdminRole;
-  allOfferings: boolean;
-  offeringSlugs: string[];
-  allSites: boolean;
-  siteSlugs: string[];
+  assignments: readonly AdminAssignment[];
 };
 
 function prefix(msg: string) {
@@ -36,7 +45,56 @@ function prefix(msg: string) {
 
 const ROLES = new Set<AdminRole>(["owner", "editor", "viewer"]);
 
-function parseOfferingsField(raw: unknown, adminIndex: string): Pick<AdminEntry, "offeringSlugs" | "allOfferings"> {
+const ROLE_PRECEDENCE: Record<AdminRole, number> = {
+  viewer: 0,
+  editor: 1,
+  owner: 2,
+};
+
+function mergeMaxRole(assignments: readonly AdminAssignment[]): AdminRole {
+  let max: AdminRole = "viewer";
+  for (const a of assignments) {
+    if (ROLE_PRECEDENCE[a.role] > ROLE_PRECEDENCE[max]) {
+      max = a.role;
+    }
+  }
+  return max;
+}
+
+function assignmentsGrantAllOfferings(assignments: readonly AdminAssignment[]): boolean {
+  return assignments.some(
+    (a) =>
+      a.scope.type === "platform" ||
+      a.scope.type === "wildcard_offerings"
+  );
+}
+
+function assignmentsGrantAllSites(assignments: readonly AdminAssignment[]): boolean {
+  return assignments.some(
+    (a) => a.scope.type === "platform" || a.scope.type === "wildcard_sites"
+  );
+}
+
+function explicitOfferingSlugs(assignments: readonly AdminAssignment[]): string[] {
+  const out: string[] = [];
+  for (const a of assignments) {
+    if (a.scope.type === "offering") out.push(a.scope.slug);
+  }
+  return [...new Set(out)];
+}
+
+function explicitSiteSlugs(assignments: readonly AdminAssignment[]): string[] {
+  const out: string[] = [];
+  for (const a of assignments) {
+    if (a.scope.type === "site") out.push(a.scope.slug);
+  }
+  return [...new Set(out)];
+}
+
+function parseOfferingsField(
+  raw: unknown,
+  adminIndex: string
+): { offeringSlugs: string[]; allOfferings: boolean } {
   if (!Array.isArray(raw)) {
     throw new Error(prefix(`${adminIndex}.offerings must be an array`));
   }
@@ -81,7 +139,7 @@ function parseOfferingsField(raw: unknown, adminIndex: string): Pick<AdminEntry,
 function parseSitesField(
   raw: unknown,
   adminIndex: string
-): Pick<AdminEntry, "siteSlugs" | "allSites"> {
+): { siteSlugs: string[]; allSites: boolean } {
   if (raw === undefined || raw === null) {
     return { allSites: false, siteSlugs: [] };
   }
@@ -126,6 +184,127 @@ function parseSitesField(
   return { allSites: false, siteSlugs: [...new Set(explicit)] };
 }
 
+function normalizeLegacyAssignments(
+  role: AdminRole,
+  allOfferings: boolean,
+  offeringSlugs: string[],
+  allSites: boolean,
+  siteSlugs: string[]
+): AdminAssignment[] {
+  const out: AdminAssignment[] = [];
+  if (allOfferings) {
+    out.push({ role, scope: { type: "wildcard_offerings" } });
+  } else {
+    for (const slug of offeringSlugs) {
+      out.push({ role, scope: { type: "offering", slug } });
+    }
+  }
+  if (allSites) {
+    out.push({ role, scope: { type: "wildcard_sites" } });
+  } else {
+    for (const slug of siteSlugs) {
+      out.push({ role, scope: { type: "site", slug } });
+    }
+  }
+  return out;
+}
+
+function parseYamlScope(
+  raw: unknown,
+  adminIndex: string,
+  assignmentIndex: string
+): YamlAdminScope {
+  if (raw === null || typeof raw !== "object") {
+    throw new Error(prefix(`${adminIndex}.${assignmentIndex}.scope must be an object`));
+  }
+  const o = raw as Record<string, unknown>;
+  const tRaw = o.type;
+  if (typeof tRaw !== "string" || !tRaw.trim()) {
+    throw new Error(prefix(`${adminIndex}.${assignmentIndex}.scope.type must be non-empty string`));
+  }
+  const t = tRaw.trim();
+  if (t === "platform") {
+    if ("slug" in o && o.slug !== undefined && o.slug !== null && String(o.slug).trim() !== "") {
+      throw new Error(
+        prefix(`${adminIndex}.${assignmentIndex}.scope.slug must not be set when type is platform`)
+      );
+    }
+    return { type: "platform" };
+  }
+  if (t === "offering") {
+    if (typeof o.slug !== "string" || !o.slug.trim()) {
+      throw new Error(
+        prefix(`${adminIndex}.${assignmentIndex}.scope.slug is required when type is offering`)
+      );
+    }
+    const slug = o.slug.trim();
+    if (!isSafeSlug(slug)) {
+      throw new Error(
+        prefix(
+          `${adminIndex}.${assignmentIndex}.scope.slug must be a valid offering slug, got ${JSON.stringify(slug)}`
+        )
+      );
+    }
+    return { type: "offering", slug };
+  }
+  if (t === "site") {
+    if (typeof o.slug !== "string" || !o.slug.trim()) {
+      throw new Error(
+        prefix(`${adminIndex}.${assignmentIndex}.scope.slug is required when type is site`)
+      );
+    }
+    const slug = o.slug.trim();
+    if (!isSafeSlug(slug)) {
+      throw new Error(
+        prefix(
+          `${adminIndex}.${assignmentIndex}.scope.slug must be a valid site slug, got ${JSON.stringify(slug)}`
+        )
+      );
+    }
+    return { type: "site", slug };
+  }
+  throw new Error(
+    prefix(
+      `${adminIndex}.${assignmentIndex}.scope.type must be platform | offering | site, got ${JSON.stringify(t)}`
+    )
+  );
+}
+
+function parseAssignmentsField(
+  raw: unknown,
+  adminIndex: string
+): AdminAssignment[] {
+  if (!Array.isArray(raw)) {
+    throw new Error(prefix(`${adminIndex}.assignments must be an array`));
+  }
+  if (raw.length === 0) {
+    throw new Error(prefix(`${adminIndex}.assignments must be non-empty`));
+  }
+
+  const out: AdminAssignment[] = [];
+  for (let j = 0; j < raw.length; j++) {
+    const assignmentIndex = `assignments[${j}]`;
+    const cell = raw[j];
+    if (cell === null || typeof cell !== "object") {
+      throw new Error(prefix(`${adminIndex}.${assignmentIndex} must be an object`));
+    }
+    const a = cell as Record<string, unknown>;
+    const roleRaw = a.role;
+    if (typeof roleRaw !== "string" || !ROLES.has(roleRaw.trim() as AdminRole)) {
+      throw new Error(
+        prefix(`${adminIndex}.${assignmentIndex}.role must be one of: owner | editor | viewer`)
+      );
+    }
+    const role = roleRaw.trim() as AdminRole;
+    if (!("scope" in a)) {
+      throw new Error(prefix(`${adminIndex}.${assignmentIndex} is missing "scope"`));
+    }
+    const scope = parseYamlScope(a.scope, adminIndex, assignmentIndex);
+    out.push({ role, scope });
+  }
+  return out;
+}
+
 /** Validates parsed YAML; throws with a clear message if shape is invalid. */
 export function validateAdminsContent(raw: unknown): AdminsConfig {
   if (raw === null || typeof raw !== "object") {
@@ -167,10 +346,30 @@ export function validateAdminsContent(raw: unknown): AdminsConfig {
     }
     seenEmails.add(emailNorm);
 
+    const hasAssignmentsArray = Array.isArray(r.assignments);
+
+    if ("assignments" in r || hasAssignmentsArray) {
+      if (!hasAssignmentsArray) {
+        throw new Error(prefix(`${adminIndex}.assignments must be an array`));
+      }
+      if ("role" in r || "offerings" in r || "sites" in r) {
+        throw new Error(
+          prefix(
+            `${adminIndex}: use either legacy fields (role, offerings, optional sites) or assignments, not both`
+          )
+        );
+      }
+      const assignments = parseAssignmentsField(r.assignments, adminIndex);
+      admins.push({
+        email: r.email.trim(),
+        assignments,
+      });
+      continue;
+    }
+
+    /* Legacy schema */
     if (typeof r.role !== "string" || !ROLES.has(r.role.trim() as AdminRole)) {
-      throw new Error(
-        prefix(`${adminIndex}.role must be one of: owner | editor | viewer`)
-      );
+      throw new Error(prefix(`${adminIndex}.role must be one of: owner | editor | viewer`));
     }
     const role = r.role.trim() as AdminRole;
 
@@ -181,17 +380,19 @@ export function validateAdminsContent(raw: unknown): AdminsConfig {
     const { allOfferings, offeringSlugs } = parseOfferingsField(r.offerings, adminIndex);
 
     const { allSites, siteSlugs } = parseSitesField(
-      "sites" in r ? r.sites ?? undefined : undefined,
+      "sites" in r ? (r.sites ?? undefined) : undefined,
       adminIndex
     );
 
     admins.push({
       email: r.email.trim(),
-      role,
-      offeringSlugs,
-      allOfferings,
-      siteSlugs,
-      allSites,
+      assignments: normalizeLegacyAssignments(
+        role,
+        allOfferings,
+        offeringSlugs,
+        allSites,
+        siteSlugs
+      ),
     });
   }
 
@@ -217,11 +418,8 @@ export function getAdminAccessFromConfig(
   for (const row of config.admins) {
     if (normalizeEmail(row.email) !== e) continue;
     return {
-      role: row.role,
-      allOfferings: row.allOfferings,
-      offeringSlugs: row.offeringSlugs,
-      allSites: row.allSites,
-      siteSlugs: row.siteSlugs,
+      role: mergeMaxRole(row.assignments),
+      assignments: row.assignments,
     };
   }
   return null;
@@ -231,6 +429,26 @@ export function emailIsAdminFromConfig(config: AdminsConfig, email: string | und
   return getAdminAccessFromConfig(config, email) !== null;
 }
 
+function canGrantOffering(assignments: readonly AdminAssignment[], offeringSlug: string): boolean {
+  if (!isSafeSlug(offeringSlug)) return false;
+  for (const a of assignments) {
+    const s = a.scope;
+    if (s.type === "platform" || s.type === "wildcard_offerings") return true;
+    if (s.type === "offering" && s.slug === offeringSlug) return true;
+  }
+  return false;
+}
+
+function canGrantSite(assignments: readonly AdminAssignment[], siteSlug: string): boolean {
+  if (!isSafeSlug(siteSlug)) return false;
+  for (const a of assignments) {
+    const s = a.scope;
+    if (s.type === "platform" || s.type === "wildcard_sites") return true;
+    if (s.type === "site" && s.slug === siteSlug) return true;
+  }
+  return false;
+}
+
 export function canAdminAccessOfferingFromConfig(
   config: AdminsConfig,
   email: string | undefined,
@@ -238,9 +456,7 @@ export function canAdminAccessOfferingFromConfig(
 ): boolean {
   const access = getAdminAccessFromConfig(config, email);
   if (!access) return false;
-  if (!isSafeSlug(offeringSlug)) return false;
-  if (access.allOfferings) return true;
-  return access.offeringSlugs.includes(offeringSlug);
+  return canGrantOffering(access.assignments, offeringSlug);
 }
 
 /** Filters `allOfferingSlugs` to those this admin may manage (preserves input order, dedupes by walk). */
@@ -251,10 +467,10 @@ export function listAdminAllowedOfferingSlugsFromConfig(
 ): string[] {
   const access = getAdminAccessFromConfig(config, email);
   if (!access) return [];
-  if (access.allOfferings) {
+  if (assignmentsGrantAllOfferings(access.assignments)) {
     return allOfferingSlugs.filter((s) => isSafeSlug(s));
   }
-  const allowed = new Set(access.offeringSlugs);
+  const allowed = new Set(explicitOfferingSlugs(access.assignments));
   return allOfferingSlugs.filter((s) => allowed.has(s));
 }
 
@@ -265,9 +481,7 @@ export function canAdminAccessSiteFromConfig(
 ): boolean {
   const access = getAdminAccessFromConfig(config, email);
   if (!access) return false;
-  if (!isSafeSlug(siteSlug)) return false;
-  if (access.allSites) return true;
-  return access.siteSlugs.includes(siteSlug);
+  return canGrantSite(access.assignments, siteSlug);
 }
 
 /** Filters `allSiteSlugs` to those this admin may manage (preserves input order). */
@@ -278,9 +492,9 @@ export function listAdminAllowedSiteSlugsFromConfig(
 ): string[] {
   const access = getAdminAccessFromConfig(config, email);
   if (!access) return [];
-  if (access.allSites) {
+  if (assignmentsGrantAllSites(access.assignments)) {
     return allSiteSlugs.filter((s) => isSafeSlug(s));
   }
-  const allowed = new Set(access.siteSlugs);
+  const allowed = new Set(explicitSiteSlugs(access.assignments));
   return allSiteSlugs.filter((s) => allowed.has(s));
 }

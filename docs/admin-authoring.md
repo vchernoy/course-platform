@@ -1,30 +1,57 @@
 # Admin authoring (preview, local drafts, Git-backed publishing)
 
-This document describes the **admin authoring architecture**. The app ships: [`/admin`](../app/admin/layout.tsx), [`config/admins.yaml`](../config/admins.yaml), [`lib/content-repository/`](../lib/content-repository/), YAML-driven **offering-scoped** admin roles plus optional **site-scoped** **`sites`**, shared lesson and site MDX compilation, **sites** admin UI, **lesson/site preview**, **Save draft** via [`createDraftRepository()`](../lib/drafts/index.ts) (**`DRAFT_BACKEND`**: filesystem **`.data/drafts/`** or **Vercel Blob** — production-compatible drafts when **`blob`**), **Phase 3B Publish locally** (overwrites **only** one **`content/***.mdx`** after **`baseHash`** checks — **local / self-hosted only**; **blocked on Vercel** serverless — use Git-backed publish later). No GitHub publish API, Monaco/TipTap, or collaborative editing yet.
+This document describes the **admin authoring architecture**. The app ships: [`/admin`](../app/admin/layout.tsx), [`config/admins.yaml`](../config/admins.yaml), [`lib/content-repository/`](../lib/content-repository/), YAML-driven admin **assignments** (scopes on offerings and sites), shared lesson and site MDX compilation, **sites** admin UI, **lesson/site preview**, **Save draft** via [`createDraftRepository()`](../lib/drafts/index.ts) (**`DRAFT_BACKEND`**: filesystem **`.data/drafts/`** or **Vercel Blob** — production-compatible drafts when **`blob`**), **Phase 3B Publish locally** (overwrites **only** one **`content/***.mdx`** after **`baseHash`** checks — **local / self-hosted only**; **blocked on Vercel** serverless — use Git-backed publish later). No GitHub publish API, Monaco/TipTap, or collaborative editing yet.
 
 Related: [Architecture](./architecture.md), [Auth and visibility](./auth-and-visibility.md), [Content layout](./content-layout.md).
 
 ## Admin access model
 
-Admins are configured in **[`config/admins.yaml`](../config/admins.yaml)** (Git-tracked). Each row has:
+Admins are configured in **[`config/admins.yaml`](../config/admins.yaml)** (Git-tracked). Each admin row starts with **`email`** (matched case-insensitively, same normalization as [`students.yaml`](./auth-and-visibility.md)).
 
-- **`email`** — matched case-insensitively (same normalization as [`students.yaml`](./auth-and-visibility.md)).
-- **`role`** — `owner` \| `editor` \| `viewer` (validated at load time; reserved for future permission differences).
-- **`offerings`** — non-empty array; each entry is **`"`*`"`** (all offerings on the platform) **or** a safe offering slug under `content/offerings/`. Mixing **`*`** with specific slugs is **not** allowed.
-- **`sites`** (optional) — when **omitted**, this admin has **no** site admin access. When present: non-empty array; each entry is **`"`*`"`** (all sites under `content/sites/`) **or** a safe site slug. Mixing **`*`** with specific site slugs is **not** allowed.
+### Preferred: **`assignments`**
 
-**Application code** should use [`lib/admin-auth.ts`](../lib/admin-auth.ts) (loads YAML once per call site):
+Each row uses an **`assignments`** array (**non-empty**). Do **not** mix **`assignments`** with legacy **`role`**, **`offerings`**, or **`sites`** keys on the same row.
+
+Every assignment has:
+
+- **`role`** — `owner` \| `editor` \| `viewer` (validated at load time; finer permission differences within the admin surfaces are **not** implemented yet — all granted roles behave the same for the existing **`canAdminAccess*`** helpers).
+- **`scope`** — a mapping **`type`** and optional **`slug`**:
+  - **`platform`** — no **`slug`**; **`slug` must not** be present. Grants access to **all offerings** **and** **all sites** (same breadth as legacy **`"*"`** on both **`offerings`** and **`sites`** together). Does **not** add separate capabilities such as manage-admins, billing, or global settings — only the same **`/admin/offerings/*`** / **`/admin/sites/*`** gates as elsewhere.
+  - **`offering`** — **`slug`** required — a safe slug under **`content/offerings/<slug>/`** grants only that offering.
+  - **`site`** — **`slug`** required — a safe slug under **`content/sites/<slug>/`** grants only that site.
+
+Overlapping scopes for one email (**OR**) union: **any** assignment that grants access to an offering/site allows that route; **`listAdminAllowed*`** merges wildcards (**`platform`** or legacy **`"`*`"`**) with explicit **`offering` / `site`** slugs appropriately.
+
+<a id="future-planned-scoped-role-assignments"></a>
+
+### Future scopes (not implemented)
+
+**Page** — **`page`** scopes and **`lesson`** scopes (`scope.type: page | lesson`) are **not** implemented in YAML or parsers. When added later, **`slug`** (or richer identifiers) will follow the corresponding content layout. Prefer **`platform`**, **`offering`**, or **`site`** until then.
+
+### Legacy (backward compatible)
+
+Rows **without** an **`assignments`** key remain supported:
+
+- **`role`** — `owner` \| `editor` \| `viewer` (one role applies to everything that legacy row expands to).
+- **`offerings`** — non-empty array; each entry **`"`*`"`** (all offerings) **or** a safe offering slug under **`content/offerings/`**. Mixing **`*`** with specific slugs is **not** allowed.
+- **`sites`** (optional) — when omitted, this admin gets **no** site admin access unless another row matches the email. When present: non-empty array; each entry **`"`*`"`** (all sites) **or** a safe site slug. Mixing **`*`** with specific slugs **not** allowed.
+
+At load time, **`lib/admins.ts`** normalizes each legacy row into internal **`assignments`** (wildcard axes from **`"`*`"`** expand to **`wildcard_offerings` / `wildcard_sites`** internally — those types are **not** valid YAML; use **`platform`** or explicit slugs in config).
+
+A **reference copy** of an all-legacy admins file (same shape as an earlier `config/admins.yaml`, **not** read by the app) lives in **[`docs/examples/admins-legacy-format.yaml`](./examples/admins-legacy-format.yaml)**.
+
+### Application helpers
+
+[`lib/admin-auth.ts`](../lib/admin-auth.ts) (loads **`config/admins.yaml`** once per call site):
 
 - `emailIsAdmin` / `canAccessAdmin` — any configured admin row.
-- `getAdminAccess` — role + scopes (`allOfferings` / `allSites` vs explicit slug lists).
+- `getAdminAccess` — returned **`AdminAccess`** has **`role`** (max across assignments: viewer &lt; editor &lt; owner) plus **`assignments`** (normalized list).
 - `canAdminAccessOffering(email, offeringSlug)` — gate **`/admin/offerings/[slug]`** and lesson admin routes.
 - `listAdminAllowedOfferingSlugs(email, allOfferingSlugs)` — drives **`/admin/offerings`**.
 - `canAdminAccessSite(email, siteSlug)` — gate **`/admin/sites/[siteSlug]`** and site page edit routes.
 - `listAdminAllowedSiteSlugs(email, allSiteSlugs)` — drives **`/admin/sites`**.
 
 [`lib/admins.ts`](../lib/admins.ts) holds pure parsers plus **`…FromConfig`** helpers — useful for tests and offline validation; route handlers and server actions should prefer **`admin-auth`** wrappers above.
-
-An admin with **`offerings: ["*"]`** sees **every** offering returned by [`listOfferingSlugs`](../lib/offerings.ts) (typical for **owner**). Scoped rows only see listed slugs.
 
 **Students vs admins:** [`students.yaml`](../config/students.yaml) controls learner access to **`/offerings/*`**. Admin UI uses **`admins.yaml`** only. The same person may appear in both files with different scopes.
 
@@ -33,7 +60,7 @@ An admin with **`offerings: ["*"]`** sees **every** offering returned by [`listO
 ## Draft vs published vs preview (today)
 
 | Kind | Storage | Notes |
-|------|---------|--------|
+|------|---------|-------|
 | **Published lessons** | Git / filesystem (`content/offerings/…/*.mdx`) | Source of truth for learners. **Publish locally** may overwrite **only** that `.mdx` after hash checks — **no Git commit** — **not available on Vercel** (`VERCEL=1`). |
 | **Published site pages** | Git / filesystem (`content/sites/…/pages/*.mdx`) | Same publish semantics as lessons. |
 | **Per-admin drafts** | **`DraftRepository`** backend ([`createDraftRepository()`](../lib/drafts/index.ts)) | **`DRAFT_BACKEND=local`** (default): **`.data/drafts/`**. **`DRAFT_BACKEND=blob`**: Vercel Blob pathnames `drafts/{offerings|sites}/…/*.mdx`. Same YAML frontmatter + **`baseHash`**. Blob drafts work on **Vercel**; filesystem drafts do **not**. |
@@ -69,7 +96,7 @@ Frontmatter includes **`updatedAt`**, **`updatedBy`**, **`baseHash`** (hex SHA-2
 
 Otherwise the action returns an error and **does not write**. The UI may disable **Publish locally** when stale, but **never** rely on client state for safety.
 
-If the check passes, the action writes **draft body only** (plain MDX, **no** YAML frontmatter) to the single target path, then **deletes** the draft via **`DraftRepository`**. It does **not** modify `offering.yaml`, `site.yaml`, `videos.yaml`, `resources.yaml`, assets, or create commits.
+If the check passes, the action writes **draft body only** (plain MDX, **no** YAML frontmatter) to the single target path, then **deletes** the draft via **`DraftRepository`**. It **does not** modify `offering.yaml`, `site.yaml`, `videos.yaml`, `resources.yaml`, assets, or create commits.
 
 **Stale** means the published file on disk no longer matches the hash frozen on the draft — e.g. another process edited Git-tracked content. Message shown in UI and server:
 

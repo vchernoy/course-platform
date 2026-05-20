@@ -64,7 +64,7 @@ No database sync: edit YAML and reload.
 
 ### Admin routes
 
-Require a signed-in Clerk user; authorization uses **[`config/admins.yaml`](../config/admins.yaml)** — each row defines **offering scopes** (required) and **optional site scopes** (`sites` omitted → no site admin access). Typical paths:
+Require a signed-in Clerk user; authorization uses **[`config/admins.yaml`](../config/admins.yaml)** — **`assignments`** scopes (preferred) **or legacy** **`role`** / **`offerings`** / optional **`sites`** (`sites` omitted → no site admin access). Typical paths:
 
 - **`/admin`**
 - **`/admin/offerings`**

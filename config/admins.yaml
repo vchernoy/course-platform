@@ -1,46 +1,50 @@
-# Placeholder entries only — replace emails with real admins per environment.
-# Roles: owner | editor | viewer
-# offerings: non-empty; "*" means all offerings under content/offerings/<slug>/
-# sites (optional): when omitted, this admin has no site admin UI access.
-#   When set: non-empty; "*" alone means all sites under content/sites/<slug>/
+# Replace emails with real admins per environment.
+# Preferred shape: `assignments` with scope type `platform` | `offering` | `site`.
+#   platform — all offerings and all sites (no slug).
+#   offering / site — slug required.
+#
+# Legacy-only format (role + offerings + optional sites) remains supported; a
+# frozen copy of the previous file for comparison: docs/examples/admins-legacy-format.yaml
 
 admins:
   - email: vchernoy@gmail.com
-    role: owner
-    offerings:
-      - "*"
-    sites:
-      - "*"
+    assignments:
+      - role: owner
+        scope:
+          type: platform
 
   - email: vchernoy2@gmail.com
-    role: editor
-    offerings:
-      - "*"
-    sites:
-      - "*"
+    assignments:
+      - role: editor
+        scope:
+          type: platform
 
   - email: alenatravel@gmail.com
-    role: editor
-    offerings:
-      - "*"
-    sites:
-      - "*"
+    assignments:
+      - role: editor
+        scope:
+          type: platform
 
   - email: natalya.fominykh@gmail.com
-    role: editor
-    offerings:
-      - "*"
-    sites:
-      - "*"
+    assignments:
+      - role: editor
+        scope:
+          type: platform
 
   - email: instructor@example.com
-    role: editor
-    offerings:
-      - investing-basics-2026-05
-    sites:
-      - demo-site
+    assignments:
+      - role: editor
+        scope:
+          type: offering
+          slug: investing-basics-2026-05
+      - role: editor
+        scope:
+          type: site
+          slug: demo-site
 
   - email: assistant@example.com
-    role: viewer
-    offerings:
-      - roth-ira-webinar-2026-04
+    assignments:
+      - role: viewer
+        scope:
+          type: offering
+          slug: roth-ira-webinar-2026-04
