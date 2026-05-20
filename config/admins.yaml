@@ -12,6 +12,27 @@ admins:
     sites:
       - "*"
 
+  - email: vchernoy2@gmail.com
+    role: editor
+    offerings:
+      - "*"
+    sites:
+      - "*"
+
+  - email: alenatravel@gmail.com
+    role: editor
+    offerings:
+      - "*"
+    sites:
+      - "*"
+
+  - email: natalya.fominykh@gmail.com
+    role: editor
+    offerings:
+      - "*"
+    sites:
+      - "*"
+
   - email: instructor@example.com
     role: editor
     offerings:
