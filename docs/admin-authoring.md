@@ -14,7 +14,7 @@ Each row uses an **`assignments`** array (**non-empty**). Do **not** mix **`assi
 
 Every assignment has:
 
-- **`role`** — `owner` \| `editor` \| `viewer` (validated at load time). Today, **`canAdminAccess*`** does not distinguish roles. **Phase 4A** site page create/delete additionally requires **`canAdminMutateSite`** (see below): **`viewer`** cannot add or remove published pages even when a **viewer** assignment grants the site.
+- **`role`** — `owner` \| `editor` \| `viewer` (validated at load time). **`canAdminAccess*`** (read-only admin pages and preview) does not distinguish roles. Anything that writes — saving, discarding or publishing a lesson or site page draft, and **Phase 4A** site page create/delete — additionally requires **`canAdminMutateOffering`** / **`canAdminMutateSite`** (see below): a **`viewer`** assignment is read-only.
 - **`scope`** — a mapping **`type`** and optional **`slug`**:
   - **`platform`** — no **`slug`**; **`slug` must not** be present. Grants access to **all offerings** **and** **all sites** (same breadth as legacy **`"*"`** on both **`offerings`** and **`sites`** together). Does **not** add separate capabilities such as manage-admins, billing, or global settings — only the same **`/admin/offerings/*`** / **`/admin/sites/*`** gates as elsewhere.
   - **`offering`** — **`slug`** required — a safe slug under **`content/offerings/<slug>/`** grants only that offering.
@@ -46,11 +46,12 @@ A **reference copy** of an all-legacy admins file (same shape as an earlier `con
 
 - `emailIsAdmin` / `canAccessAdmin` — any configured admin row.
 - `getAdminAccess` — returned **`AdminAccess`** has **`role`** (max across assignments: viewer &lt; editor &lt; owner) plus **`assignments`** (normalized list).
-- `canAdminAccessOffering(email, offeringSlug)` — gate **`/admin/offerings/[slug]`** and lesson admin routes.
+- `canAdminAccessOffering(email, offeringSlug)` — gate **`/admin/offerings/[slug]`** and lesson preview.
+- `canAdminMutateOffering(email, offeringSlug)` — lesson draft edit page and save/discard/publish actions; requires **`owner`** or **`editor`** on an assignment that **grants this offering** (`platform` / **`wildcard_offerings`** / scoped **`offering`**). **viewer** never qualifies.
 - `listAdminAllowedOfferingSlugs(email, allOfferingSlugs)` — drives **`/admin/offerings`**.
-- `canAdminAccessSite(email, siteSlug)` — gate **`/admin/sites/[siteSlug]`** and site page edit routes.
+- `canAdminAccessSite(email, siteSlug)` — gate **`/admin/sites/[siteSlug]`**.
 - `listAdminAllowedSiteSlugs(email, allSiteSlugs)` — drives **`/admin/sites`**.
-- `canAdminMutateSite(email, siteSlug)` — **Phase 4A** published site page create/delete on disk; requires **`owner`** or **`editor`** on an assignment that **grants this site** (`platform` / **`wildcard_sites`** / scoped **`site`**). **Offering-only** editors do not qualify; **viewer** never qualifies.
+- `canAdminMutateSite(email, siteSlug)` — site page draft edit page and save/discard/publish actions, plus **Phase 4A** published site page create/delete on disk; requires **`owner`** or **`editor`** on an assignment that **grants this site** (`platform` / **`wildcard_sites`** / scoped **`site`**). **Offering-only** editors do not qualify; **viewer** never qualifies.
 
 [`lib/admins.ts`](../lib/admins.ts) holds pure parsers plus **`…FromConfig`** helpers — useful for tests and offline validation; route handlers and server actions should prefer **`admin-auth`** wrappers above.
 

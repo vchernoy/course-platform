@@ -429,12 +429,19 @@ export function emailIsAdminFromConfig(config: AdminsConfig, email: string | und
   return getAdminAccessFromConfig(config, email) !== null;
 }
 
+/** True if this single assignment grants admin UI access to `offeringSlug` (any role). */
+export function assignmentGrantsOfferingSlug(a: AdminAssignment, offeringSlug: string): boolean {
+  if (!isSafeSlug(offeringSlug)) return false;
+  const s = a.scope;
+  if (s.type === "platform" || s.type === "wildcard_offerings") return true;
+  if (s.type === "offering" && s.slug === offeringSlug) return true;
+  return false;
+}
+
 function canGrantOffering(assignments: readonly AdminAssignment[], offeringSlug: string): boolean {
   if (!isSafeSlug(offeringSlug)) return false;
   for (const a of assignments) {
-    const s = a.scope;
-    if (s.type === "platform" || s.type === "wildcard_offerings") return true;
-    if (s.type === "offering" && s.slug === offeringSlug) return true;
+    if (assignmentGrantsOfferingSlug(a, offeringSlug)) return true;
   }
   return false;
 }
@@ -457,7 +464,8 @@ function canGrantSite(assignments: readonly AdminAssignment[], siteSlug: string)
 }
 
 /**
- * Create/delete published site pages (filesystem `content/sites`) may run only when some
+ * Create/delete published site pages (filesystem `content/sites`) and save/discard/publish
+ * site page drafts may run only when some
  * assignment grants this site/platWildcard AND that assignment's role is owner or editor.
  * Viewer assignments that grant the site do not allow mutation.
  */
@@ -471,6 +479,24 @@ export function canAdminMutateSiteFromConfig(
   for (const a of access.assignments) {
     if (a.role !== "owner" && a.role !== "editor") continue;
     if (assignmentGrantsSiteSlug(a, siteSlug)) return true;
+  }
+  return false;
+}
+
+/**
+ * Save/discard/publish lesson drafts may run only when some assignment grants this offering
+ * AND that assignment's role is owner or editor. Viewer assignments are read-only.
+ */
+export function canAdminMutateOfferingFromConfig(
+  config: AdminsConfig,
+  email: string | undefined,
+  offeringSlug: string
+): boolean {
+  const access = getAdminAccessFromConfig(config, email);
+  if (!access || !isSafeSlug(offeringSlug)) return false;
+  for (const a of access.assignments) {
+    if (a.role !== "owner" && a.role !== "editor") continue;
+    if (assignmentGrantsOfferingSlug(a, offeringSlug)) return true;
   }
   return false;
 }
