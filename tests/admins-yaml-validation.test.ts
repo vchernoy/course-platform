@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   canAdminAccessOfferingFromConfig,
   canAdminAccessSiteFromConfig,
+  canAdminMutateOfferingFromConfig,
   emailIsAdminFromConfig,
   getAdminAccessFromConfig,
   listAdminAllowedOfferingSlugsFromConfig,
@@ -389,5 +390,50 @@ describe("validateAdminsContent", () => {
         }),
       /valid site slug/
     );
+  });
+});
+
+describe("canAdminMutateOfferingFromConfig", () => {
+  it("allows owner and editor on a granting assignment", () => {
+    assert.equal(canAdminMutateOfferingFromConfig(sample, "owner@example.com", "any-slug"), true);
+    assert.equal(
+      canAdminMutateOfferingFromConfig(sample, "editor@example.com", "investing-basics-2026-05"),
+      true
+    );
+  });
+
+  it("denies viewer even on a granted offering", () => {
+    assert.equal(canAdminAccessOfferingFromConfig(sample, "assistant@example.com", "roth-ira-webinar-2026-04"), true);
+    assert.equal(
+      canAdminMutateOfferingFromConfig(sample, "assistant@example.com", "roth-ira-webinar-2026-04"),
+      false
+    );
+  });
+
+  it("denies editor on an offering their assignment does not grant", () => {
+    assert.equal(
+      canAdminMutateOfferingFromConfig(sample, "editor@example.com", "roth-ira-webinar-2026-04"),
+      false
+    );
+  });
+
+  it("uses the role of the granting assignment, not the max role", () => {
+    const cfg = validateAdminsContent({
+      admins: [
+        {
+          email: "mixed@example.com",
+          assignments: [
+            { role: "owner", scope: { type: "site", slug: "demo-site" } },
+            { role: "viewer", scope: { type: "offering", slug: "roth-ira-webinar-2026-04" } },
+          ],
+        },
+      ],
+    });
+    assert.equal(canAdminMutateOfferingFromConfig(cfg, "mixed@example.com", "roth-ira-webinar-2026-04"), false);
+  });
+
+  it("denies unknown email and invalid slug", () => {
+    assert.equal(canAdminMutateOfferingFromConfig(sample, "nobody@example.com", "any-slug"), false);
+    assert.equal(canAdminMutateOfferingFromConfig(sample, "owner@example.com", "../etc"), false);
   });
 });
