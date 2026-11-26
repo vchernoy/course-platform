@@ -32,7 +32,7 @@ describe("ActiveDocument", () => {
       expect(html).toContain('class="katex');
       expect(html).not.toContain('role="alert"');
     }
-    expect(preview).toContain("Static defaults preview");
+    expect(preview).toContain("Interactive document preview");
     const bad = renderToStaticMarkup(await compileLessonMdxContent({ ...params, source: '<ActiveDocument source="../../config/students.yaml" />' }));
     expect(bad).toContain('role="alert"'); expect(bad).not.toContain("@example.com");
   });

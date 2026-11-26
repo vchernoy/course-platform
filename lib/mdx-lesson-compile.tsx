@@ -49,6 +49,7 @@ export type CompileLessonMdxParams = {
  *
  * - **Quiz** → `HtmlPreviewQuizPlaceholder`
  * - **CompoundInterestCalculator** → `HtmlPreviewCompoundInterestPlaceholder`
+ * - **ActiveDocument** → sanitized HTML; preview clients mount each nested ActiveMD root.
  *
  * When you add a new `"use client"` component to `lessonMdxComponents`, either:
  *

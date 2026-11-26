@@ -16,8 +16,7 @@ export function createActiveDocument(offeringSlug: string, preview = false) {
       return <aside role="alert">ActiveDocument could not load. Use an existing .md file under this offering’s ../assets/ directory (maximum 64 KiB, no symlinks).</aside>;
     }
     if (preview) return <section aria-label="Interactive document preview">
-      <p role="note">Static defaults preview. Controls are interactive in the lesson.</p>
-      <div className="active-document" inert dangerouslySetInnerHTML={{ __html: html }} />
+      <div className="active-document" dangerouslySetInnerHTML={{ __html: html }} />
     </section>;
     return <section aria-label="Interactive document"><ActiveDocumentClient html={html} /></section>;
   };

@@ -9,6 +9,12 @@ test("hydrates server defaults, isolates instances and cleans up on navigation",
   const deposit = first.getByRole("spinbutton", { name: "Deposit (starts at 10,000.00)", exact: true });
   await expect(deposit).toHaveValue("10000");
   await expect(first.locator("output").last()).toHaveText("21,589.25");
+  const preview = page.getByTestId("preview");
+  const previewInputs = preview.getByRole("spinbutton", { name: "Deposit (starts at 10,000.00)", exact: true });
+  await expect(previewInputs).toHaveCount(2);
+  await previewInputs.first().fill("0");
+  await expect(preview.locator("output").nth(1)).toHaveText("0.00");
+  await expect(previewInputs.last()).toHaveValue("10000");
   await deposit.fill("20000");
   await expect(first.locator("output").last()).toHaveText("43,178.50");
   await expect(second.getByRole("spinbutton").first()).toHaveValue("10000");

@@ -3,18 +3,19 @@
 import { useEffect, useRef } from "react";
 import { mount } from "@vchernoy/active-runtime";
 
-/** Receives only HTML sanitized by renderActive on the server. */
-export function ActiveDocumentClient({ html }: { html: string }) {
+/** Server-rendered HTML; activate only the nested sanitized ActiveMD roots. */
+export function ActiveDocumentClient({ html, className = "active-document" }: { html: string; className?: string }) {
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const element = root.current;
     if (!element) return;
     element.innerHTML = html;
-    const mounted = mount(element, { locale: "en-US" });
+    const mounted = [...element.querySelectorAll<HTMLElement>(".active-doc")]
+      .map(document => mount(document, { locale: "en-US" }));
     return () => {
-      mounted.destroy();
+      mounted.forEach(document => document.destroy());
       element.innerHTML = html;
     };
   }, [html]);
-  return <div className="active-document" ref={root} dangerouslySetInnerHTML={{ __html: html }} />;
+  return <div className={className} ref={root} dangerouslySetInnerHTML={{ __html: html }} />;
 }

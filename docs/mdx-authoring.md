@@ -249,10 +249,10 @@ The locale is explicitly `en-US` on both server and client. No quiz attempts,
 reader values or results are persisted. Existing calculators and quizzes remain
 separate. See the compound-interest example in investing basics lesson 3.
 
-The existing admin HTML preview is static: it displays the same default document
-with inert controls and a visible notice. Interactive admin preview requires a
-future RSC/iframe preview route; current HTML serialization cannot host React
-client islands. This limitation also applies to the existing calculator/quiz.
+Admin HTML serialization renders the same sanitized defaults. Both the lesson
+preview form and draft editor mount each embedded ActiveMD document independently
+after inserting the serialized HTML, and destroy listeners when it changes.
+Existing calculator/quiz placeholders remain unchanged.
 
 ### Why a component first?
 
@@ -267,7 +267,7 @@ has verified the integration.
 ### Validation
 
 `npm test` covers safe source resolution, real lesson compilation and static
-preview defaults. `npm run test:browser` uses a test-only local host with the real
+preview defaults and multiple serialized preview documents. `npm run test:browser` uses a test-only local host with the real
 client component to check hydration, numeric/math updates, independent instances
 and unmount/remount in Chromium, Firefox and WebKit. It does not bypass or test
 Clerk, and is not proof of authenticated production route acceptance.

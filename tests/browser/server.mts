@@ -10,7 +10,7 @@ createServer((req, res) => {
   if (req.url === "/bundle.js") { res.setHeader("Content-Type", "text/javascript"); res.end(bundle.outputFiles[0].text); return; }
   if (req.url !== "/") { res.writeHead(404); res.end(); return; }
   res.setHeader("Content-Type", "text/html");
-  res.end('<!doctype html><meta name="viewport" content="width=device-width"><div id="root">' + '<button>Toggle documents</button><div data-testid="first"><div class="active-document">' + html + '</div></div><div data-testid="second"><div class="active-document">' + html + '</div></div>' + '</div><script type="application/json" id="payload">' + JSON.stringify(html).replace(/</g, "\\u003c") + '</script><script type="module" src="/bundle.js"></script>');
+  res.end('<!doctype html><meta name="viewport" content="width=device-width"><div id="root">' + '<button>Toggle documents</button><div data-testid="first"><div class="active-document">' + html + '</div></div><div data-testid="second"><div class="active-document">' + html + '</div></div><div data-testid="preview"><div class="active-document">' + html + html + '</div></div>' + '</div><script type="application/json" id="payload">' + JSON.stringify(html).replace(/</g, "\\u003c") + '</script><script type="module" src="/bundle.js"></script>');
 }).listen(4317, "127.0.0.1");
 
 }
