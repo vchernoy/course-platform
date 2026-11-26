@@ -7,6 +7,7 @@ import rehypeSlug from "rehype-slug";
 import remarkDirective from "remark-directive";
 import remarkMath from "remark-math";
 import { Anchor } from "@/components/mdx/Anchor";
+import { createActiveDocument } from "@/components/mdx/ActiveDocument";
 import { AnchorBlock } from "@/components/mdx/AnchorBlock";
 import { Callout } from "@/components/mdx/Callout";
 import { CompoundInterestCalculator } from "@/components/mdx/CompoundInterestCalculator";
@@ -114,6 +115,7 @@ function lessonMdxComponents(
 
   return {
     Anchor,
+    ActiveDocument: createActiveDocument(offeringSlug),
     AnchorBlock,
     Callout,
     CompoundInterestCalculator,
@@ -154,6 +156,7 @@ function lessonMdxComponentsForHtmlPreview(
   const base = lessonMdxComponents(offeringSlug, videos, resources);
   return {
     ...base,
+    ActiveDocument: createActiveDocument(offeringSlug, true),
     Quiz: HtmlPreviewQuizPlaceholder,
     CompoundInterestCalculator: HtmlPreviewCompoundInterestPlaceholder,
   };

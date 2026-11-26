@@ -8,14 +8,17 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test tests/**/*.test.ts && vitest run"
+    "test": "tsx --test tests/**/*.test.ts && vitest run",
+    "test:browser": "playwright test"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.3.4",
     "@mdx-js/mdx": "^3.1.1",
+    "@vchernoy/active-runtime": "0.11.0",
+    "@vchernoy/remark-active": "0.11.0",
     "@vercel/blob": "^2.4.0",
     "hast-util-to-string": "^3.0.0",
-    "katex": "^0.16.46",
+    "katex": "0.19.1",
     "minisearch": "^7.2.0",
     "next": "^16.2.6",
     "next-mdx-remote": "^6.0.0",
@@ -31,11 +34,13 @@
     "yaml": "^2.9.0"
   },
   "devDependencies": {
+    "@playwright/test": "1.64.1",
     "@tailwindcss/postcss": "^4.3.0",
     "@types/node": "^25.8.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.5.0",
+    "esbuild": "0.28.0",
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.2.6",
     "postcss": "^8.5.14",

@@ -2,6 +2,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import "./globals.css";
 import "katex/dist/katex.min.css";
+import "@vchernoy/active-runtime/style.css";
 
 export const metadata: Metadata = {
   title: "Course platform",

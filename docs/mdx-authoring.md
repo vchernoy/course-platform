@@ -227,3 +227,47 @@ Escape literal dollar signs when needed (e.g. `\$100`) to avoid accidental math 
 - [Architecture](./architecture.md)
 - [Auth and visibility](./auth-and-visibility.md)
 - [Content layout](./content-layout.md)
+
+## Optional ActiveMD document (0.11.0)
+
+Inside an authorized lesson, use a **literal string** attribute:
+
+```mdx
+<ActiveDocument source="../assets/compound-interest.md" />
+```
+
+The source is a UTF-8 Markdown file in that offering's `assets/` directory,
+limited to 64 KiB. Nested safe filenames work; URLs, absolute paths, traversal,
+symlinks and `.mdx` files are rejected. No browser endpoint fetches the source.
+The component inherits the enclosing learner/admin route's authorization; it is
+not registered on public site pages. Do not place secrets in document content.
+
+The server uses the published sanitized `renderActive` pipeline and displays
+positioned author diagnostics. Numeric controls and math become live after
+hydration, with independent state per instance and listener cleanup on unmount.
+The locale is explicitly `en-US` on both server and client. No quiz attempts,
+reader values or results are persisted. Existing calculators and quizzes remain
+separate. See the compound-interest example in investing basics lesson 3.
+
+The existing admin HTML preview is static: it displays the same default document
+with inert controls and a visible notice. Interactive admin preview requires a
+future RSC/iframe preview route; current HTML serialization cannot host React
+client islands. This limitation also applies to the existing calculator/quiz.
+
+### Why a component first?
+
+An isolated Markdown document avoids passing calc syntax through MDX's JSX
+expression restrictions (`blockJS` stays enabled), and avoids collisions with
+lesson directives, TOC and heading transforms. Direct integration into the full
+MDX remark pipeline remains a separate phase requiring plugin-order, directive,
+heading and safety evaluation. Nested ActiveMD headings are outside the lesson
+TOC. Do not replace existing lesson components until authenticated route testing
+has verified the integration.
+
+### Validation
+
+`npm test` covers safe source resolution, real lesson compilation and static
+preview defaults. `npm run test:browser` uses a test-only local host with the real
+client component to check hydration, numeric/math updates, independent instances
+and unmount/remount in Chromium, Firefox and WebKit. It does not bypass or test
+Clerk, and is not proof of authenticated production route acceptance.

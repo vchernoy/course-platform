@@ -1,0 +1,24 @@
+import { expect, test } from "@playwright/test";
+test("hydrates server defaults, isolates instances and cleans up on navigation", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", error => errors.push(error.message));
+  page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.goto("/");
+  const first = page.getByTestId("first"), second = page.getByTestId("second");
+  const deposit = first.getByRole("spinbutton", { name: "Deposit (starts at 10,000.00)", exact: true });
+  await expect(deposit).toHaveValue("10000");
+  await expect(first.locator("output").last()).toHaveText("21,589.25");
+  await deposit.fill("20000");
+  await expect(first.locator("output").last()).toHaveText("43,178.50");
+  await expect(second.getByRole("spinbutton").first()).toHaveValue("10000");
+  await first.getByRole("slider").fill("10");
+  await expect(first.locator(".katex")).toContainText("51,874.85");
+  await page.getByRole("button", { name: "Toggle documents" }).click();
+  await expect(first).toHaveCount(0);
+  await page.getByRole("button", { name: "Toggle documents" }).click();
+  await expect(deposit).toHaveValue("10000");
+  await deposit.fill("0");
+  await expect(first.locator("output").last()).toHaveText("0.00");
+  expect(errors).toEqual([]);
+});
