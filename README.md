@@ -55,6 +55,7 @@ Open [http://localhost:3000](http://localhost:3000). In dev, offering footers ma
 | `npm run build` | Production build |
 | `npm run start` | Serve production |
 | `npm run lint` | ESLint |
+| `npm run typecheck` | `tsc --noEmit` |
 | `npm test` | `tsx --test tests/**/*.test.ts` and Vitest ([`vitest.config.ts`](vitest.config.ts)) |
 
 ## Current status / scope
