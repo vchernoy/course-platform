@@ -1,7 +1,7 @@
 "use server";
 
 import { forbidden } from "next/navigation";
-import { canAdminAccessSite } from "@/lib/admin-auth";
+import { canAdminMutateSite } from "@/lib/admin-auth";
 import { getCurrentUserEmail } from "@/lib/authz";
 import {
   LOCAL_PUBLISH_BLOCKED_ON_VERCEL_MESSAGE,
@@ -36,7 +36,7 @@ export async function saveSitePageDraftAction(
   if (blocked) return { ok: false, error: blocked };
 
   const email = await getCurrentUserEmail();
-  if (!email || !canAdminAccessSite(email, siteSlug)) {
+  if (!email || !canAdminMutateSite(email, siteSlug)) {
     forbidden();
   }
 
@@ -93,7 +93,7 @@ export async function publishSitePageDraftLocally(
   }
 
   const email = await getCurrentUserEmail();
-  if (!email || !canAdminAccessSite(email, siteSlug)) {
+  if (!email || !canAdminMutateSite(email, siteSlug)) {
     forbidden();
   }
 
@@ -151,7 +151,7 @@ export async function discardSitePageDraftAction(
   if (blocked) return { ok: false, error: blocked };
 
   const email = await getCurrentUserEmail();
-  if (!email || !canAdminAccessSite(email, siteSlug)) {
+  if (!email || !canAdminMutateSite(email, siteSlug)) {
     forbidden();
   }
 

@@ -11,6 +11,8 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Route and action authorization uses forbidden() and app/forbidden.tsx.
+  experimental: { authInterrupts: true },
   async redirects() {
     return [
       {

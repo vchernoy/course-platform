@@ -1,7 +1,7 @@
 "use server";
 
 import { forbidden } from "next/navigation";
-import { canAdminAccessOffering } from "@/lib/admin-auth";
+import { canAdminMutateOffering } from "@/lib/admin-auth";
 import { getCurrentUserEmail } from "@/lib/authz";
 import {
   LOCAL_PUBLISH_BLOCKED_ON_VERCEL_MESSAGE,
@@ -41,7 +41,7 @@ export async function saveLessonDraftAction(
   if (blocked) return { ok: false, error: blocked };
 
   const email = await getCurrentUserEmail();
-  if (!email || !canAdminAccessOffering(email, offeringSlug)) {
+  if (!email || !canAdminMutateOffering(email, offeringSlug)) {
     forbidden();
   }
 
@@ -96,7 +96,7 @@ export async function publishLessonDraftLocally(
   }
 
   const email = await getCurrentUserEmail();
-  if (!email || !canAdminAccessOffering(email, offeringSlug)) {
+  if (!email || !canAdminMutateOffering(email, offeringSlug)) {
     forbidden();
   }
 
@@ -152,7 +152,7 @@ export async function discardLessonDraftAction(
   if (blocked) return { ok: false, error: blocked };
 
   const email = await getCurrentUserEmail();
-  if (!email || !canAdminAccessOffering(email, offeringSlug)) {
+  if (!email || !canAdminMutateOffering(email, offeringSlug)) {
     forbidden();
   }
 

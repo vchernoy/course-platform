@@ -4,6 +4,7 @@ import {
   loadAdmins,
   canAdminAccessOfferingFromConfig,
   canAdminAccessSiteFromConfig,
+  canAdminMutateOfferingFromConfig,
   canAdminMutateSiteFromConfig,
   listAdminAllowedOfferingSlugsFromConfig,
   listAdminAllowedSiteSlugsFromConfig,
@@ -32,6 +33,11 @@ export function canAdminAccessOffering(
   return canAdminAccessOfferingFromConfig(loadAdmins(), email, offeringSlug);
 }
 
+/** Save/discard/publish lesson drafts: owner/editor on an offering-granting assignment only. */
+export function canAdminMutateOffering(email: string | undefined, offeringSlug: string): boolean {
+  return canAdminMutateOfferingFromConfig(loadAdmins(), email, offeringSlug);
+}
+
 export function listAdminAllowedOfferingSlugs(
   email: string | undefined,
   allOfferingSlugs: readonly string[]
@@ -43,7 +49,7 @@ export function canAdminAccessSite(email: string | undefined, siteSlug: string):
   return canAdminAccessSiteFromConfig(loadAdmins(), email, siteSlug);
 }
 
-/** Create/delete published site pages (Phase 4A): owner/editor on a site-granting assignment only. */
+/** Create/delete published site pages (Phase 4A) and site page drafts: owner/editor on a site-granting assignment only. */
 export function canAdminMutateSite(email: string | undefined, siteSlug: string): boolean {
   return canAdminMutateSiteFromConfig(loadAdmins(), email, siteSlug);
 }

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { forbidden, notFound } from "next/navigation";
-import { canAdminAccessOffering } from "@/lib/admin-auth";
+import { canAdminAccessOffering, canAdminMutateOffering } from "@/lib/admin-auth";
 import { getCurrentUserEmail } from "@/lib/authz";
 import { loadOfferingResources } from "@/lib/offering-resources";
 import { loadOfferingVideos } from "@/lib/offering-videos";
@@ -49,6 +49,7 @@ export default async function AdminOfferingDetailPage({ params }: Props) {
     notFound();
   }
 
+  const canEditDrafts = Boolean(email && canAdminMutateOffering(email, offeringSlug));
   const lessons = getOrderedLessons(offering);
   const visibility = effectiveOfferingVisibility(offering);
   const dateLine = [offering.startDate, offering.endDate].filter(Boolean).join(" → ");
@@ -143,12 +144,14 @@ export default async function AdminOfferingDetailPage({ params }: Props) {
                       <span className="text-zinc-400"> · {les.slug}</span>
                     </span>
                     <span className="flex flex-wrap gap-x-3 gap-y-1">
-                      <Link
-                        href={`/admin/offerings/${offeringSlug}/lessons/${les.slug}/edit`}
-                        className="text-xs font-medium text-zinc-600 underline-offset-2 hover:text-zinc-900 hover:underline"
-                      >
-                        Edit draft
-                      </Link>
+                      {canEditDrafts ? (
+                        <Link
+                          href={`/admin/offerings/${offeringSlug}/lessons/${les.slug}/edit`}
+                          className="text-xs font-medium text-zinc-600 underline-offset-2 hover:text-zinc-900 hover:underline"
+                        >
+                          Edit draft
+                        </Link>
+                      ) : null}
                       <Link
                         href={`/admin/offerings/${offeringSlug}/lessons/${les.slug}/preview`}
                         className="text-xs font-medium text-zinc-600 underline-offset-2 hover:text-zinc-900 hover:underline"

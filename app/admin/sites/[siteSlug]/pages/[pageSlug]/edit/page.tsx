@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { forbidden, notFound } from "next/navigation";
 import { AdminMdxDraftEditor } from "@/components/admin/AdminMdxDraftEditor";
-import { canAdminAccessSite } from "@/lib/admin-auth";
+import { canAdminMutateSite } from "@/lib/admin-auth";
 import { getCurrentUserEmail } from "@/lib/authz";
 import { createDraftRepository, getDraftStatus } from "@/lib/drafts";
 import {
@@ -41,7 +41,7 @@ export default async function AdminSitePageDraftEditPage({ params }: Props) {
   }
 
   const email = await getCurrentUserEmail();
-  if (!email || !canAdminAccessSite(email, siteSlug)) {
+  if (!email || !canAdminMutateSite(email, siteSlug)) {
     forbidden();
   }
 

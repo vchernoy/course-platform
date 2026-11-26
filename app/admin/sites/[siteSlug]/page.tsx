@@ -166,12 +166,14 @@ export default async function AdminSiteDetailPage({ params }: Props) {
                   <span className="text-zinc-400"> · {p}</span>
                 </span>
                 <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                  <Link
-                    href={`/admin/sites/${siteSlug}/pages/${p}/edit`}
-                    className="text-xs font-medium text-zinc-600 underline-offset-2 hover:text-zinc-900 hover:underline"
-                  >
-                    Edit draft
-                  </Link>
+                  {canMutatePages ? (
+                    <Link
+                      href={`/admin/sites/${siteSlug}/pages/${p}/edit`}
+                      className="text-xs font-medium text-zinc-600 underline-offset-2 hover:text-zinc-900 hover:underline"
+                    >
+                      Edit draft
+                    </Link>
+                  ) : null}
                   {p !== "index" ? (
                     <SitePageDeleteButton
                       siteSlug={siteSlug}

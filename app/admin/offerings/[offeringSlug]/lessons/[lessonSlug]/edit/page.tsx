@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { forbidden, notFound } from "next/navigation";
 import { AdminMdxDraftEditor } from "@/components/admin/AdminMdxDraftEditor";
-import { canAdminAccessOffering } from "@/lib/admin-auth";
+import { canAdminMutateOffering } from "@/lib/admin-auth";
 import { getCurrentUserEmail } from "@/lib/authz";
 import { createDraftRepository, getDraftStatus } from "@/lib/drafts";
 import {
@@ -59,7 +59,7 @@ export default async function AdminLessonDraftEditPage({ params }: Props) {
   }
 
   const email = await getCurrentUserEmail();
-  if (!email || !canAdminAccessOffering(email, offeringSlug)) {
+  if (!email || !canAdminMutateOffering(email, offeringSlug)) {
     forbidden();
   }
 
