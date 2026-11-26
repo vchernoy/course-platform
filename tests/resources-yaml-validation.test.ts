@@ -18,8 +18,16 @@ describe("validateResourcesContent", () => {
         },
       },
     });
-    assert.deepEqual(map["worksheet-1"]!.pathSegments, ["worksheets", "roth_worksheet.pdf"]);
-    assert.deepEqual(map["chart-a"]!.pathSegments, ["charts", "chart-v1.png"]);
+    assert.deepEqual(map["worksheet-1"], {
+      type: "local",
+      label: "Sheet",
+      pathSegments: ["worksheets", "roth_worksheet.pdf"],
+    });
+    assert.deepEqual(map["chart-a"], {
+      type: "local",
+      label: "Chart",
+      pathSegments: ["charts", "chart-v1.png"],
+    });
   });
 
   it("accepts external entries", () => {
