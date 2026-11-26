@@ -2,7 +2,8 @@
 import { createServer } from "node:http";
 import { build } from "esbuild";
 import { renderActive } from "@vchernoy/remark-active";
-import { readActiveDocument } from "../../lib/active-document";
+import { createRequire } from "node:module";
+const { readActiveDocument } = createRequire(import.meta.url)("../../lib/active-document.ts");
 const html = renderActive(readActiveDocument("investing-basics-2026-05", "../assets/compound-interest.md"), { locale: "en-US" }).html;
 async function start() {
 const bundle = await build({ entryPoints: ["tests/browser/entry.tsx"], bundle: true, write: false, format: "esm", jsx: "automatic", define: { "process.env.NODE_ENV": '"development"' } });
