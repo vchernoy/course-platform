@@ -40,6 +40,13 @@ customers:
       #
       # Optional per source: `ref: main` (branch or tag), `path: subfolder`, `id: short-name`.
 
+  # Second TEST customer (fake data, public repo): checks that customers stay separate.
+  - id: claude-demo
+    title: Claude Demo Academy (test)
+    sources:
+      - repo: vchernoy/course-platform-test-customer2
+        id: test-customer2
+
   # Another customer is fully separate: its own sources, users and admins.
   # - id: acme-academy
   #   title: Acme Academy
