@@ -1,7 +1,6 @@
 import fs from "fs";
-import path from "path";
 import yaml from "yaml";
-import { configFilePath } from "@/lib/content-roots";
+import { customerConfigFiles } from "@/lib/content-roots";
 import { isSafeSlug } from "@/lib/slug";
 import { normalizeEmail } from "@/lib/students";
 
@@ -401,13 +400,36 @@ export function validateAdminsContent(raw: unknown): AdminsConfig {
 }
 
 
-export function loadAdmins(): AdminsConfig {
-  const adminsPath = configFilePath("admins.yaml");
-  if (!fs.existsSync(adminsPath)) {
-    throw new Error(`Missing ${adminsPath}`);
+/** Merge several admins files: one row per email, assignments concatenated. */
+export function mergeAdminsConfigs(configs: readonly AdminsConfig[]): AdminsConfig {
+  const byEmail = new Map<string, AdminEntry>();
+  for (const config of configs) {
+    for (const row of config.admins) {
+      const key = normalizeEmail(row.email);
+      const prev = byEmail.get(key);
+      byEmail.set(
+        key,
+        prev ? { email: prev.email, assignments: [...prev.assignments, ...row.assignments] } : row
+      );
+    }
   }
-  const raw = yaml.parse(fs.readFileSync(adminsPath, "utf8"));
-  return validateAdminsContent(raw);
+  return { admins: [...byEmail.values()] };
+}
+
+function readAdminsFile(file: string): AdminsConfig {
+  try {
+    return validateAdminsContent(yaml.parse(fs.readFileSync(file, "utf8")));
+  } catch (e) {
+    throw new Error(`${file}: ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
+/**
+ * All `config/admins.yaml` files of one customer's sources, merged. A `platform` scope in these
+ * files means "every offering and site of this customer".
+ */
+export function loadAdminsForCustomer(customer: string): AdminsConfig {
+  return mergeAdminsConfigs(customerConfigFiles(customer, "admins.yaml").map(readAdminsFile));
 }
 
 export function getAdminAccessFromConfig(

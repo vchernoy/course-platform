@@ -1,0 +1,41 @@
+# Where users and content come from. See docs/content-sources.md.
+#
+# Each customer lists any number of sources. A source is this repo (`self: true`), a GitHub repo
+# (`repo: owner/name`, public or private) or a local folder (`dir:`). Every source may contain any of:
+#
+#   config/students.yaml  config/admins.yaml  content/offerings/<slug>/  content/sites/<slug>/
+#
+# Everything a customer's sources contain is combined. Students and admins only apply to the
+# offerings and sites of the same customer. Offering and site slugs must be unique across all sources.
+#
+# Private repos: set `tokenEnv` to the NAME of an environment variable (in Vercel) that holds a
+# fine-grained GitHub token with read-only "Contents" access. Never put the token itself here.
+
+customers:
+  - id: vchernoy
+    title: Investing classes
+    sources:
+      # This repository: sample offerings and sites, plus config/students.yaml and config/admins.yaml.
+      - self: true
+
+      # Examples: uncomment and adjust after creating the repos.
+      #
+      # Users for all of this customer's classes (private):
+      # - repo: vchernoy/investing-users
+      #   tokenEnv: GITHUB_TOKEN_VCHERNOY
+      #
+      # One private repo per paid course (content, and optionally its own students.yaml):
+      # - repo: vchernoy/investing-basics-2027-01
+      #   tokenEnv: GITHUB_TOKEN_VCHERNOY
+      #
+      # A public repo with free webinars or a blog site:
+      # - repo: vchernoy/investing-public-events
+      #
+      # Optional per source: `ref: main` (branch or tag), `path: subfolder`, `id: short-name`.
+
+  # Another customer is fully separate: its own sources, users and admins.
+  # - id: acme-academy
+  #   title: Acme Academy
+  #   sources:
+  #     - repo: acme/academy-content
+  #       tokenEnv: GITHUB_TOKEN_ACME

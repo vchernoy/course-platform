@@ -46,7 +46,7 @@ Open [http://localhost:3000](http://localhost:3000). In dev, offering footers ma
 | [docs/auth-and-visibility.md](docs/auth-and-visibility.md) | Clerk, `students.yaml`, `admins.yaml` (offering + optional site scopes), middleware, `/p`, `/s`, `/offerings`, admin routes, security boundaries |
 | [docs/content-layout.md](docs/content-layout.md) | `offering.yaml`, `site.yaml`, `videos.yaml`, `assets/`, slugs, copying offerings |
 | [docs/mdx-authoring.md](docs/mdx-authoring.md) | Components, Quiz, VideoPlayer, callouts, details, LaTeX |
-| [docs/private-content.md](docs/private-content.md) | Loading real users and private courses from a private repo at build time |
+| [docs/content-sources.md](docs/content-sources.md) | `config/sources.yaml`: customers, and the public and private repos their users and content come from |
 
 ## Scripts
 
@@ -61,7 +61,7 @@ Open [http://localhost:3000](http://localhost:3000). In dev, offering footers ma
 
 ## Current status / scope
 
-- Private users and courses: loaded from a private repo at build time (`PRIVATE_CONTENT_REPO`, see [private content](docs/private-content.md)); this public repo holds code and sample content.
+- Users and content come from any number of public and private repos per customer, listed in [`config/sources.yaml`](config/sources.yaml) and combined at build time ([content sources](docs/content-sources.md)).
 - Auth: Clerk + local YAML (`students.yaml` for learners, `admins.yaml` for read-only admin UI — **offering scopes** per row and **optional site scopes**).
 - Filesystem-backed marketing/simple **sites** at **`/s/...`** (`content/sites/`); admin listing under **`/admin/sites`**.
 - Offering-scoped lesson search under `/offerings/.../search`.

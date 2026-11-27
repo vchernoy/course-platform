@@ -87,21 +87,21 @@ export function validateSiteContent(raw: unknown): SiteMeta {
 }
 
 export function siteYamlPath(siteSlug: string): string {
-  return path.join(siteDir(siteSlug), "site.yaml");
+  return path.join(/*turbopackIgnore: true*/ siteDir(siteSlug), "site.yaml");
 }
 
 export function sitePagesDir(siteSlug: string): string {
-  return path.join(siteDir(siteSlug), "pages");
+  return path.join(/*turbopackIgnore: true*/ siteDir(siteSlug), "pages");
 }
 
 /** Path to the MDX file for a logical page slug (`index` → `index.mdx`). */
 export function sitePageFilePath(siteSlug: string, pageSlug: string): string {
   assertSafeSlug("siteSlug", siteSlug);
   if (pageSlug === "index") {
-    return path.join(sitePagesDir(siteSlug), "index.mdx");
+    return path.join(/*turbopackIgnore: true*/ sitePagesDir(siteSlug), "index.mdx");
   }
   assertSafeSlug("pageSlug", pageSlug);
-  return path.join(sitePagesDir(siteSlug), `${pageSlug}.mdx`);
+  return path.join(/*turbopackIgnore: true*/ sitePagesDir(siteSlug), `${pageSlug}.mdx`);
 }
 
 function verifySiteOnDisk(siteSlug: string, meta: SiteMeta): void {

@@ -14,9 +14,9 @@ const nextConfig: NextConfig = {
   // Route and action authorization uses forbidden() and app/forbidden.tsx.
   experimental: { authInterrupts: true },
   // Content and config are read with fs at request time; make sure server bundles include them,
-  // including the private-content/ checkout synced before the build (docs/private-content.md).
+  // including GitHub sources cloned into external-content/ before the build (docs/content-sources.md).
   outputFileTracingIncludes: {
-    "/**": ["./content/**/*", "./config/**/*", "./private-content/**/*"],
+    "/**": ["./content/**/*", "./config/**/*", "./external-content/**/*"],
   },
   async redirects() {
     return [

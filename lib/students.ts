@@ -1,7 +1,6 @@
 import fs from "fs";
-import path from "path";
 import yaml from "yaml";
-import { configFilePath } from "@/lib/content-roots";
+import { customerConfigFiles, customerOfOffering } from "@/lib/content-roots";
 import { isSafeSlug } from "@/lib/slug";
 
 export type StudentEntry = { email: string; offerings: string[] };
@@ -111,13 +110,36 @@ export function studentAllowsOffering(
 /** @deprecated use studentAllowsOffering */
 export const studentAllowsCourse = studentAllowsOffering;
 
-export function loadStudents(): StudentsConfig {
-  const studentsPath = configFilePath("students.yaml");
-  if (!fs.existsSync(studentsPath)) {
-    throw new Error(`Missing ${studentsPath}`);
+/** Merge several students files: one row per email, offerings unioned (first-seen order). */
+export function mergeStudentsConfigs(configs: readonly StudentsConfig[]): StudentsConfig {
+  const byEmail = new Map<string, StudentEntry>();
+  for (const config of configs) {
+    for (const row of config.students) {
+      const key = normalizeEmail(row.email);
+      const prev = byEmail.get(key);
+      if (!prev) {
+        byEmail.set(key, { email: row.email, offerings: [...row.offerings] });
+      } else {
+        for (const slug of row.offerings) {
+          if (!prev.offerings.includes(slug)) prev.offerings.push(slug);
+        }
+      }
+    }
   }
-  const raw = yaml.parse(fs.readFileSync(studentsPath, "utf8"));
-  return validateStudentsContent(raw);
+  return { students: [...byEmail.values()] };
+}
+
+function readStudentsFile(file: string): StudentsConfig {
+  try {
+    return validateStudentsContent(yaml.parse(fs.readFileSync(file, "utf8")));
+  } catch (e) {
+    throw new Error(`${file}: ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
+/** All `config/students.yaml` files of one customer's sources, merged. */
+export function loadStudentsForCustomer(customer: string): StudentsConfig {
+  return mergeStudentsConfigs(customerConfigFiles(customer, "students.yaml").map(readStudentsFile));
 }
 
 export function canAccessOfferingWithConfig(
@@ -132,9 +154,15 @@ export function canAccessOfferingWithConfig(
 /** @deprecated use canAccessOfferingWithConfig */
 export const canAccessCourseWithConfig = canAccessOfferingWithConfig;
 
+/**
+ * Whether `email` is enrolled in `offeringSlug`. Only students files from the same customer as the
+ * offering count, so one customer's lists can never grant access to another customer's courses.
+ */
 export function emailHasOfferingAccess(email: string, offeringSlug: string): boolean {
   if (!isSafeSlug(offeringSlug)) return false;
-  return studentAllowsOffering(loadStudents(), email, offeringSlug);
+  const customer = customerOfOffering(offeringSlug);
+  if (!customer) return false;
+  return studentAllowsOffering(loadStudentsForCustomer(customer), email, offeringSlug);
 }
 
 /** @deprecated use emailHasOfferingAccess */

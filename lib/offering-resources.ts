@@ -127,7 +127,7 @@ export function validateResourcesContent(raw: unknown): OfferingResourceMap {
 
 export function loadOfferingResources(offeringSlug: string): OfferingResourceMap {
   assertSafeSlug("offeringSlug", offeringSlug);
-  const filePath = path.join(offeringDir(offeringSlug), "resources.yaml");
+  const filePath = path.join(/*turbopackIgnore: true*/ offeringDir(offeringSlug), "resources.yaml");
   if (!fs.existsSync(filePath)) {
     return {};
   }

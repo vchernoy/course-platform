@@ -200,7 +200,7 @@ export function validateOfferingContent(raw: unknown): OfferingMeta {
 
 export function loadOffering(offeringSlug: string): OfferingMeta {
   assertSafeSlug("offeringSlug", offeringSlug);
-  const offeringPath = path.join(offeringDir(offeringSlug), "offering.yaml");
+  const offeringPath = path.join(/*turbopackIgnore: true*/ offeringDir(offeringSlug), "offering.yaml");
   if (!fs.existsSync(offeringPath)) {
     throw new Error(`Offering not found: ${offeringSlug} (missing ${offeringPath})`);
   }
@@ -273,7 +273,7 @@ export function getLessonFilePath(
   moduleSlug: string,
   lessonSlug: string
 ): string {
-  return path.join(offeringDir(offeringSlug), moduleSlug, `${lessonSlug}.mdx`);
+  return path.join(/*turbopackIgnore: true*/ offeringDir(offeringSlug), moduleSlug, `${lessonSlug}.mdx`);
 }
 
 export function loadLessonSource(

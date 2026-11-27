@@ -100,7 +100,7 @@ export function validateVideosContent(raw: unknown): OfferingVideoMap {
 
 export function loadOfferingVideos(offeringSlug: string): OfferingVideoMap {
   assertSafeSlug("offeringSlug", offeringSlug);
-  const filePath = path.join(offeringDir(offeringSlug), "videos.yaml");
+  const filePath = path.join(/*turbopackIgnore: true*/ offeringDir(offeringSlug), "videos.yaml");
   if (!fs.existsSync(filePath)) {
     return {};
   }

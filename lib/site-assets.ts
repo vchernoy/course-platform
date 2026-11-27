@@ -7,7 +7,7 @@ import { assertSafeAssetSegments, assertSafeSlug, isSafeSlug } from "@/lib/slug"
 
 export function siteAssetsDir(siteSlug: string): string {
   assertSafeSlug("siteSlug", siteSlug);
-  return path.join(siteDir(siteSlug), "assets");
+  return path.join(/*turbopackIgnore: true*/ siteDir(siteSlug), "assets");
 }
 
 /**

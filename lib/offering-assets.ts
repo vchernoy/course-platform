@@ -5,7 +5,7 @@ import { assertSafeAssetSegments, assertSafeSlug, isSafeSlug } from "@/lib/slug"
 
 
 export function offeringAssetsDir(offeringSlug: string): string {
-  return path.join(offeringDir(offeringSlug), "assets");
+  return path.join(/*turbopackIgnore: true*/ offeringDir(offeringSlug), "assets");
 }
 
 /** Rewrite markdown images so ../assets/foo resolves under this offering. */
@@ -17,8 +17,8 @@ export function rewriteLessonAssetUrls(source: string, offeringSlug: string): st
 
 export function resolveUnderAssetsRoot(rootDir: string, segments: string[]): string | null {
   if (segments.length === 0) return null;
-  const resolved = path.normalize(path.join(rootDir, ...segments));
-  const prefix = path.normalize(`${rootDir}${path.sep}`);
+  const resolved = path.normalize(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ rootDir, ...segments));
+  const prefix = path.normalize(/*turbopackIgnore: true*/ `${rootDir}${path.sep}`);
   if (!resolved.startsWith(prefix)) return null;
   return resolved;
 }
@@ -33,7 +33,7 @@ export function safeAssetFilePath(offeringSlug: string, segments: string[]): str
   const root = offeringAssetsDir(offeringSlug);
   const resolved = resolveUnderAssetsRoot(root, segments);
   if (!resolved) return null;
-  if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) return null;
+  if (!fs.existsSync(/*turbopackIgnore: true*/ resolved) || !fs.statSync(/*turbopackIgnore: true*/ resolved).isFile()) return null;
   return resolved;
 }
 
