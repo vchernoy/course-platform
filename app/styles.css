@@ -106,6 +106,16 @@
 :root[data-active-style="chalkboard"] :is(.bg-white, .hover\:bg-white:hover) {
   background-color: #23392f;
 }
+/* Filled primary controls (bg-zinc-900 text-white): the remapped zinc-900 is chalk, so they become
+   chalk-filled with board-coloured text instead of white on near-white. */
+:root[data-active-style="chalkboard"] .bg-zinc-900 {
+  background-color: #eef2ea;
+  color: #1b2b23;
+}
+:root[data-active-style="chalkboard"] .hover\:bg-zinc-800:hover {
+  background-color: #dfe6db;
+  color: #1b2b23;
+}
 /* Text-only emerald shades become chalk-pastel; filled emerald buttons keep a dark fill. */
 :root[data-active-style="chalkboard"] :is(.text-emerald-700, .text-emerald-800, .text-emerald-900) {
   color: #a8ecb8;

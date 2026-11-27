@@ -28,3 +28,13 @@ test("the boot script applies only a known saved style and survives blocked stor
   for (const saved of [null, "plain", "unknown", "\"><script>"]) assert.equal(boot(saved).activeStyle, undefined);
   assert.equal(boot(new Error("blocked")).activeStyle, undefined);
 });
+
+test("Chalkboard keeps filled primary controls readable (white text on the remapped zinc-900)", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const css = await readFile(new URL("../app/styles.css", import.meta.url), "utf8");
+  // zinc-900 is remapped to chalk, so .bg-zinc-900 must also set a dark foreground, normally and on hover.
+  assert.match(css, /--color-zinc-900: #f6f8f2/);
+  for (const selector of [/\[data-active-style="chalkboard"\] \.bg-zinc-900 \{[^}]*color: #1b2b23/, /\[data-active-style="chalkboard"\] \.hover\\:bg-zinc-800:hover \{[^}]*color: #1b2b23/]) {
+    assert.match(css, selector);
+  }
+});
