@@ -22,3 +22,9 @@ students:
   - email: natalya.fominykh@gmail.com
     offerings:
       - investing-basics-2026-05
+
+  # Test account for development/QA (Clerk test-mode address, sign-in code 424242).
+  - email: claude-test+clerk_test1@example.com
+    offerings:
+      - investing-basics-2026-05
+      - roth-ira-webinar-2026-04
