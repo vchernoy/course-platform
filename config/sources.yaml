@@ -18,6 +18,13 @@ customers:
       # This repository: sample offerings and sites, plus config/students.yaml and config/admins.yaml.
       - self: true
 
+      # Public test repos with FAKE data (example.com users only), for testing multi-repo loading:
+      # students in one repo, the course/webinar/promo site they are enrolled in in another.
+      - repo: vchernoy/course-platform-test-users
+        id: test-users
+      - repo: vchernoy/course-platform-test-content
+        id: test-content
+
       # Examples: uncomment and adjust after creating the repos.
       #
       # Users for all of this customer's classes (private):
