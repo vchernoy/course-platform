@@ -13,6 +13,11 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   // Route and action authorization uses forbidden() and app/forbidden.tsx.
   experimental: { authInterrupts: true },
+  // Content and config are read with fs at request time; make sure server bundles include them,
+  // including the private-content/ checkout synced before the build (docs/private-content.md).
+  outputFileTracingIncludes: {
+    "/**": ["./content/**/*", "./config/**/*", "./private-content/**/*"],
+  },
   async redirects() {
     return [
       {

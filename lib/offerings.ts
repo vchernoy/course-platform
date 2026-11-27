@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import yaml from "yaml";
+import { listCollectionSlugs, offeringDir } from "@/lib/content-roots";
 import { assertSafeSlug, isSafeSlug } from "@/lib/slug";
 
 export type LessonMeta = { slug: string; title: string };
@@ -32,7 +33,6 @@ export type OfferingMeta = {
 /** Alias kept so existing components can import `CourseMeta` without renaming files. */
 export type CourseMeta = OfferingMeta;
 
-const CONTENT_ROOT = path.join(process.cwd(), "content", "offerings");
 
 function prefix(msg: string) {
   return `offering.yaml: ${msg}`;
@@ -200,7 +200,7 @@ export function validateOfferingContent(raw: unknown): OfferingMeta {
 
 export function loadOffering(offeringSlug: string): OfferingMeta {
   assertSafeSlug("offeringSlug", offeringSlug);
-  const offeringPath = path.join(CONTENT_ROOT, offeringSlug, "offering.yaml");
+  const offeringPath = path.join(offeringDir(offeringSlug), "offering.yaml");
   if (!fs.existsSync(offeringPath)) {
     throw new Error(`Offering not found: ${offeringSlug} (missing ${offeringPath})`);
   }
@@ -219,20 +219,9 @@ export function isPublicOfferingLanding(meta: OfferingMeta): boolean {
   return v === "public" || v === "unlisted";
 }
 
-/** Subfolders of `content/offerings` that contain `offering.yaml`. */
+/** Offering slugs (folders with `offering.yaml`) across the public and private content roots. */
 export function listOfferingSlugs(): string[] {
-  if (!fs.existsSync(CONTENT_ROOT)) return [];
-  const names = fs.readdirSync(CONTENT_ROOT, { withFileTypes: true });
-  const slugs: string[] = [];
-  for (const d of names) {
-    if (!d.isDirectory()) continue;
-    const slug = d.name;
-    if (!isSafeSlug(slug)) continue;
-    const yamlPath = path.join(CONTENT_ROOT, slug, "offering.yaml");
-    if (fs.existsSync(yamlPath)) slugs.push(slug);
-  }
-  slugs.sort();
-  return slugs;
+  return listCollectionSlugs("offerings");
 }
 
 export type LessonNavItem = {
@@ -284,7 +273,7 @@ export function getLessonFilePath(
   moduleSlug: string,
   lessonSlug: string
 ): string {
-  return path.join(CONTENT_ROOT, offeringSlug, moduleSlug, `${lessonSlug}.mdx`);
+  return path.join(offeringDir(offeringSlug), moduleSlug, `${lessonSlug}.mdx`);
 }
 
 export function loadLessonSource(

@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import yaml from "yaml";
+import { listCollectionSlugs, siteDir } from "@/lib/content-roots";
 import { assertSafeSlug, isSafeSlug } from "@/lib/slug";
 
 export type SiteVisibility = "private" | "public" | "unlisted";
@@ -18,7 +19,6 @@ export type SiteMeta = {
   navigation: SiteNavItem[];
 };
 
-const CONTENT_SITES_ROOT = path.join(process.cwd(), "content", "sites");
 
 function prefix(msg: string) {
   return `site.yaml: ${msg}`;
@@ -87,11 +87,11 @@ export function validateSiteContent(raw: unknown): SiteMeta {
 }
 
 export function siteYamlPath(siteSlug: string): string {
-  return path.join(CONTENT_SITES_ROOT, siteSlug, "site.yaml");
+  return path.join(siteDir(siteSlug), "site.yaml");
 }
 
 export function sitePagesDir(siteSlug: string): string {
-  return path.join(CONTENT_SITES_ROOT, siteSlug, "pages");
+  return path.join(siteDir(siteSlug), "pages");
 }
 
 /** Path to the MDX file for a logical page slug (`index` → `index.mdx`). */
@@ -136,17 +136,12 @@ export function loadSite(siteSlug: string): SiteMeta {
 }
 
 /**
- * Site folders under `content/sites` that have `site.yaml` and `pages/index.mdx`.
+ * Site folders (public and private content roots) that have `site.yaml` and `pages/index.mdx`.
  * Invalid YAML is skipped (same spirit as listing offerings with broken yaml still appearing — callers use {@link loadSite} which throws).
  */
 export function listSiteSlugs(): string[] {
-  if (!fs.existsSync(CONTENT_SITES_ROOT)) return [];
-  const names = fs.readdirSync(CONTENT_SITES_ROOT, { withFileTypes: true });
   const slugs: string[] = [];
-  for (const d of names) {
-    if (!d.isDirectory()) continue;
-    const slug = d.name;
-    if (!isSafeSlug(slug)) continue;
+  for (const slug of listCollectionSlugs("sites")) {
     if (!fs.existsSync(siteYamlPath(slug))) continue;
     if (!fs.existsSync(sitePageFilePath(slug, "index"))) continue;
     try {

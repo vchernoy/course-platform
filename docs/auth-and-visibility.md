@@ -30,6 +30,8 @@ Restart `npm run dev` after changing `.env.local`.
 
 ## Students allowlist (`config/students.yaml`)
 
+> On the live site this file comes from the **private content repo**, which replaces the public sample copy. See [Private content](./private-content.md).
+
 - Each row: **`email`** and **`offerings`** — array of folder slugs under `content/offerings/`.
 - Legacy **`courses`** array is accepted and normalized to **`offerings`**.
 - Emails are trimmed and compared case-insensitively.

@@ -1,13 +1,13 @@
 import fs from "fs";
 import path from "path";
+import { siteDir } from "@/lib/content-roots";
 import { resolveUnderAssetsRoot } from "@/lib/offering-assets";
 import { assertSafeAssetSegments, assertSafeSlug, isSafeSlug } from "@/lib/slug";
 
-const CONTENT_SITES = path.join(process.cwd(), "content", "sites");
 
 export function siteAssetsDir(siteSlug: string): string {
   assertSafeSlug("siteSlug", siteSlug);
-  return path.join(CONTENT_SITES, siteSlug, "assets");
+  return path.join(siteDir(siteSlug), "assets");
 }
 
 /**

@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import yaml from "yaml";
+import { configFilePath } from "@/lib/content-roots";
 import { isSafeSlug } from "@/lib/slug";
 import { normalizeEmail } from "@/lib/students";
 
@@ -399,13 +400,13 @@ export function validateAdminsContent(raw: unknown): AdminsConfig {
   return { admins };
 }
 
-const ADMINS_PATH = path.join(process.cwd(), "config", "admins.yaml");
 
 export function loadAdmins(): AdminsConfig {
-  if (!fs.existsSync(ADMINS_PATH)) {
-    throw new Error(`Missing ${ADMINS_PATH}`);
+  const adminsPath = configFilePath("admins.yaml");
+  if (!fs.existsSync(adminsPath)) {
+    throw new Error(`Missing ${adminsPath}`);
   }
-  const raw = yaml.parse(fs.readFileSync(ADMINS_PATH, "utf8"));
+  const raw = yaml.parse(fs.readFileSync(adminsPath, "utf8"));
   return validateAdminsContent(raw);
 }
 

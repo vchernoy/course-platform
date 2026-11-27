@@ -1,11 +1,11 @@
 import fs from "fs";
 import path from "path";
+import { offeringDir } from "@/lib/content-roots";
 import { assertSafeAssetSegments, assertSafeSlug, isSafeSlug } from "@/lib/slug";
 
-const CONTENT = path.join(process.cwd(), "content", "offerings");
 
 export function offeringAssetsDir(offeringSlug: string): string {
-  return path.join(CONTENT, offeringSlug, "assets");
+  return path.join(offeringDir(offeringSlug), "assets");
 }
 
 /** Rewrite markdown images so ../assets/foo resolves under this offering. */

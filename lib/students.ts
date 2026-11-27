@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import yaml from "yaml";
+import { configFilePath } from "@/lib/content-roots";
 import { isSafeSlug } from "@/lib/slug";
 
 export type StudentEntry = { email: string; offerings: string[] };
@@ -91,7 +92,6 @@ export function validateStudentsContent(raw: unknown): StudentsConfig {
   return { students };
 }
 
-const STUDENTS_PATH = path.join(process.cwd(), "config", "students.yaml");
 
 /** Pure allowlist check (used by tests and `emailHasOfferingAccess`). */
 export function studentAllowsOffering(
@@ -112,10 +112,11 @@ export function studentAllowsOffering(
 export const studentAllowsCourse = studentAllowsOffering;
 
 export function loadStudents(): StudentsConfig {
-  if (!fs.existsSync(STUDENTS_PATH)) {
-    throw new Error(`Missing ${STUDENTS_PATH}`);
+  const studentsPath = configFilePath("students.yaml");
+  if (!fs.existsSync(studentsPath)) {
+    throw new Error(`Missing ${studentsPath}`);
   }
-  const raw = yaml.parse(fs.readFileSync(STUDENTS_PATH, "utf8"));
+  const raw = yaml.parse(fs.readFileSync(studentsPath, "utf8"));
   return validateStudentsContent(raw);
 }
 

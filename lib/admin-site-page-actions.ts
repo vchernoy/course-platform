@@ -1,5 +1,6 @@
 "use server";
 
+import { resolveCollectionItem } from "@/lib/content-roots";
 import { forbidden } from "next/navigation";
 import { canAdminMutateSite } from "@/lib/admin-auth";
 import { getCurrentUserEmail } from "@/lib/authz";
@@ -37,7 +38,7 @@ export async function createSitePageAction(
     return { ok: false, error: "Site not found." };
   }
 
-  return createSitePageOnDisk(process.cwd(), siteSlug, {
+  return createSitePageOnDisk(resolveCollectionItem("sites", siteSlug).root.dir, siteSlug, {
     title: input.title,
     slug: input.slug,
     addToNavigation: Boolean(input.addToNavigation),
@@ -68,5 +69,5 @@ export async function deleteSitePageAction(
     return { ok: false, error: "Site not found." };
   }
 
-  return deleteSitePageOnDisk(process.cwd(), siteSlug, pageSlug);
+  return deleteSitePageOnDisk(resolveCollectionItem("sites", siteSlug).root.dir, siteSlug, pageSlug);
 }
