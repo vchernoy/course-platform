@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { DashboardSignOutButton } from "@/components/dashboard/DashboardSignOutButton";
+import { StylePicker } from "@/components/theme/StylePicker";
 
 type Props = {
   email: string | null | undefined;
@@ -32,6 +33,7 @@ export function PortalHeader({ email, activeNav }: Props) {
           ) : (
             <span className="text-sm font-medium text-zinc-500">Dashboard</span>
           )}
+          <StylePicker />
           <DashboardSignOutButton />
         </nav>
       </div>

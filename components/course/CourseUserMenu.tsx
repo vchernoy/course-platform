@@ -1,6 +1,7 @@
 "use client";
 
 import { SignOutButton, useUser } from "@clerk/nextjs";
+import { StylePicker } from "@/components/theme/StylePicker";
 
 export function CourseUserMenu() {
   const { user, isLoaded } = useUser();
@@ -16,6 +17,7 @@ export function CourseUserMenu() {
       <p className="mt-1 truncate text-sm text-zinc-800">
         {isLoaded ? email ?? "—" : "…"}
       </p>
+      <StylePicker className="mt-3" />
       <SignOutButton>
         <button
           type="button"
