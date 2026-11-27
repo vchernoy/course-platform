@@ -31,6 +31,13 @@ admins:
         scope:
           type: platform
 
+  # QA test account for development (password sign-in; password kept outside the repo).
+  - email: claude-test+clerk_test1@example.com
+    assignments:
+      - role: editor
+        scope:
+          type: platform
+
   - email: instructor@example.com
     assignments:
       - role: editor

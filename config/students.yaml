@@ -22,3 +22,9 @@ students:
   - email: natalya.fominykh@gmail.com
     offerings:
       - investing-basics-2026-05
+
+  # QA test account for development (password sign-in; password kept outside the repo).
+  - email: claude-test+clerk_test1@example.com
+    offerings:
+      - investing-basics-2026-05
+      - roth-ira-webinar-2026-04
