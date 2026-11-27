@@ -31,7 +31,7 @@ admins:
         scope:
           type: platform
 
-  # Test account for development/QA (Clerk test-mode address, sign-in code 424242).
+  # QA test account for development (password sign-in; password kept outside the repo).
   - email: claude-test+clerk_test1@example.com
     assignments:
       - role: editor
