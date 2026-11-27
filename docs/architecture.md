@@ -160,3 +160,14 @@ TOC extraction uses **`@mdx-js/mdx`**; tests avoid **tsx**/CommonJS resolution i
 - [Admin authoring](./admin-authoring.md)
 - [Content layout](./content-layout.md)
 - [MDX authoring](./mdx-authoring.md)
+
+## Styles
+
+Learners pick a **Style** in the portal header and in the course sidebar: Plain (default), Hand-drawn, Bold (neo-brutalism), Notebook or Chalkboard. The ids match ActiveMD's `ACTIVE_STYLES`, so the platform and ActiveMD documents share one vocabulary.
+
+- [`lib/styles.ts`](../lib/styles.ts) holds the list, `styleChoice()` (unknown values are plain) and the boot script. The root layout runs that script in `<head>`, so a saved style is applied to `<html data-active-style>` before the first paint and never flashes the plain look. Public `/p` and `/s` pages honour the saved choice too.
+- [`components/theme/StylePicker.tsx`](../components/theme/StylePicker.tsx) is the client-side list. The choice is saved in this browser only (`course-platform.style.v1`); nothing is sent to the server.
+- [`app/styles.css`](../app/styles.css) does the restyling, CSS only:
+  - cards (bordered rounded boxes), buttons, button-like links and fields get outlines and shadows per style, and controls stay native;
+  - Notebook and Chalkboard bring their own paper or board by remapping the Tailwind palette variables the utilities read (`--color-zinc-*` and the tinted families), plus explicit white surfaces, links and code;
+  - tilts stop under `prefers-reduced-motion`.

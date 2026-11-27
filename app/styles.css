@@ -1,0 +1,206 @@
+/*
+ * Learner-chosen look (lib/styles.ts): <html data-active-style="…"> restyles the portal, the course
+ * sidebar and lesson content. Plain (no attribute) changes nothing. CSS only: buttons, fields and
+ * links stay native controls. Notebook and Chalkboard bring their own paper or board by remapping
+ * the Tailwind palette variables the utilities read; sketch and brutal keep the palette.
+ */
+
+/* ---------- Tokens ---------- */
+
+:root[data-active-style="sketch"] {
+  --cp-border: 2px;
+  --cp-shape-1: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  --cp-shape-2: 15px 255px 15px 225px / 225px 15px 255px 15px;
+  --cp-shape-3: 225px 25px 205px 35px / 25px 205px 35px 225px;
+  --cp-shadow: 2px 3px 0;
+  --cp-card-shadow: 3px 4px 0;
+  --cp-tilt: -0.4deg;
+  --cp-font: inherit;
+}
+:root[data-active-style="brutal"] {
+  --cp-border: 3px;
+  --cp-shape-1: 6px;
+  --cp-shape-2: 6px;
+  --cp-shape-3: 8px;
+  --cp-shadow: 4px 4px 0;
+  --cp-card-shadow: 8px 8px 0;
+  --cp-tilt: 0deg;
+  --cp-font: inherit;
+}
+:root[data-active-style="notebook"] {
+  --cp-border: 2px;
+  --cp-shape-1: 3px;
+  --cp-shape-2: 4px;
+  --cp-shape-3: 4px;
+  --cp-shadow: 0 0 0;
+  --cp-card-shadow: 0 0 0;
+  --cp-tilt: 0deg;
+  --cp-font: "Segoe Print", "Bradley Hand", "Chalkboard SE", "Comic Sans MS", cursive;
+  /* Light paper with blue ink. */
+  color-scheme: light;
+  --color-zinc-50: #f3efe2;
+  --color-zinc-100: #ece6d2;
+  --color-zinc-200: #b9d0ee;
+  --color-zinc-300: #8fb0dd;
+  --color-zinc-400: #6b7fa6;
+  --color-zinc-500: #4b5a78;
+  --color-zinc-600: #3c4a68;
+  --color-zinc-700: #2c3a5a;
+  --color-zinc-800: #22304d;
+  --color-zinc-900: #1f3f99;
+  --color-zinc-950: #172c6b;
+}
+:root[data-active-style="chalkboard"] {
+  --cp-border: 2px;
+  --cp-shape-1: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  --cp-shape-2: 15px 255px 15px 225px / 225px 15px 255px 15px;
+  --cp-shape-3: 225px 25px 205px 35px / 25px 205px 35px 225px;
+  --cp-shadow: 0 0 0;
+  --cp-card-shadow: 0 0 0;
+  --cp-tilt: 0deg;
+  --cp-font: "Chalkboard SE", "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive;
+  /* Chalk on a dark green board: the light zinc scale becomes the board, the dark one the chalk. */
+  color-scheme: dark;
+  --color-zinc-50: #1b2b23;
+  --color-zinc-100: #2a4236;
+  --color-zinc-200: #4d6458;
+  --color-zinc-300: #6b8274;
+  --color-zinc-400: #a9b8a6;
+  --color-zinc-500: #b9c7b6;
+  --color-zinc-600: #c9d4c6;
+  --color-zinc-700: #dfe6db;
+  --color-zinc-800: #eef2ea;
+  --color-zinc-900: #f6f8f2;
+  --color-zinc-950: #ffffff;
+  /* Tinted boxes (callouts, quiz feedback, notices): a faint wash with chalk-pastel text. */
+  --color-amber-50: #ffd4791f;
+  --color-amber-200: #ffd47973;
+  --color-amber-300: #ffd47999;
+  --color-amber-900: #ffe2a3;
+  --color-amber-950: #ffe9b8;
+  --color-emerald-50: #8ee6a51f;
+  --color-emerald-200: #8ee6a573;
+  --color-emerald-400: #8ee6a5;
+  --color-emerald-950: #bdf2cb;
+  --color-red-50: #ff9e941f;
+  --color-red-300: #ff9e9499;
+  --color-red-600: #ffb3ab;
+  --color-red-700: #ffb3ab;
+  --color-red-800: #ffc2bb;
+  --color-red-900: #ffd0ca;
+  --color-red-950: #ffd9d4;
+  --color-violet-50: #d2b8ff1f;
+  --color-violet-300: #d2b8ff99;
+  --color-violet-950: #e4d5ff;
+  --color-sky-50: #7fdfee1f;
+  --color-sky-300: #7fdfee99;
+  --color-sky-950: #c2f1f8;
+  --color-blue-600: #9fc2ff;
+  --color-blue-800: #b9d3ff;
+}
+/* White surfaces become the paper or the board. --color-white is not remapped: text-white on
+   filled buttons must stay white. */
+:root[data-active-style="notebook"] :is(.bg-white, .hover\:bg-white:hover) {
+  background-color: #fffef7;
+}
+:root[data-active-style="chalkboard"] :is(.bg-white, .hover\:bg-white:hover) {
+  background-color: #23392f;
+}
+/* Text-only emerald shades become chalk-pastel; filled emerald buttons keep a dark fill. */
+:root[data-active-style="chalkboard"] :is(.text-emerald-700, .text-emerald-800, .text-emerald-900) {
+  color: #a8ecb8;
+}
+
+/* ---------- Page surfaces ---------- */
+
+:root[data-active-style="notebook"] body {
+  /* Ruled lines across the page. */
+  background-image: linear-gradient(transparent calc(1.75rem - 1px), #dbe6f5 calc(1.75rem - 1px));
+  background-size: 100% 1.75rem;
+}
+:root[data-active-style="chalkboard"] body {
+  background-image:
+    radial-gradient(ellipse at 30% 20%, #ffffff0d, transparent 60%),
+    radial-gradient(ellipse at 80% 90%, #ffffff08, transparent 55%);
+}
+:root:is([data-active-style="notebook"], [data-active-style="chalkboard"]) :is(h1, h2, h3) {
+  font-family: var(--cp-font);
+}
+:root[data-active-style="brutal"] :is(h1, h2) {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+/* Lesson prose links and code follow the paper and the board. */
+:root[data-active-style="notebook"] .lesson-mdx a {
+  color: #1f3f99;
+}
+:root[data-active-style="chalkboard"] .lesson-mdx a {
+  color: #ffd479;
+}
+:root[data-active-style="notebook"] :is(code, pre) {
+  background-color: #efe9d6;
+  color: #22304d;
+}
+:root[data-active-style="chalkboard"] :is(code, pre) {
+  background-color: #ffffff1a;
+  color: #f6f8f2;
+}
+:root:is([data-active-style="notebook"], [data-active-style="chalkboard"]) pre code {
+  background-color: transparent;
+}
+
+/* ---------- Shared rules (every known style) ---------- */
+
+/* Cards: bordered, rounded boxes (portal cards, callouts, quizzes, the sidebar) */
+:root:is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"]) :is(.rounded-md, .rounded-lg, .rounded-xl, .rounded-2xl).border:not(button, a, input, select, textarea) {
+  border-width: var(--cp-border);
+  border-radius: var(--cp-shape-2);
+  box-shadow: var(--cp-card-shadow) var(--color-zinc-900);
+}
+
+:root:is([data-active-style="sketch"], [data-active-style="brutal"]) :is(.rounded-md, .rounded-lg, .rounded-xl, .rounded-2xl).border:not(button, a, input, select, textarea) {
+  border-color: var(--color-zinc-900);
+}
+
+/* Buttons and button-like links keep their colours; the outline and shadow change. */
+:root:is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"]) :is(button, a:is(.rounded, .rounded-md, .rounded-lg, .rounded-xl).border, a:is(.rounded, .rounded-md, .rounded-lg, .rounded-xl)[class*="bg-"]) {
+  border: var(--cp-border) solid var(--color-zinc-900);
+  border-radius: var(--cp-shape-3);
+  box-shadow: var(--cp-shadow) var(--color-zinc-900);
+  font-family: var(--cp-font);
+  transform: rotate(var(--cp-tilt));
+}
+:root:is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"]) :is(button, a:is(.rounded, .rounded-md, .rounded-lg, .rounded-xl).border, a:is(.rounded, .rounded-md, .rounded-lg, .rounded-xl)[class*="bg-"]):hover:not(:disabled) {
+  transform: translate(-1px, -1px);
+}
+:root:is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"]) :is(button, a:is(.rounded, .rounded-md, .rounded-lg, .rounded-xl).border, a:is(.rounded, .rounded-md, .rounded-lg, .rounded-xl)[class*="bg-"]):active:not(:disabled) {
+  box-shadow: none;
+  transform: translate(2px, 3px);
+}
+:root:is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"]) button:disabled {
+  border-style: dashed;
+  box-shadow: none;
+}
+:root[data-active-style="brutal"] button:not([role="radio"], [class*="bg-emerald"], [class*="bg-red"], [class*="bg-zinc-9"]) {
+  background-color: #ffd23f;
+  color: #111;
+}
+
+/* Fields */
+:root:is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"]) :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="hidden"]), select, textarea) {
+  border: var(--cp-border) solid var(--color-zinc-900);
+  border-radius: var(--cp-shape-1);
+  background-color: transparent;
+}
+
+/* Focus stays obvious, drawn in the same spirit */
+:root:is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"]) :focus-visible {
+  outline: 3px dashed var(--color-zinc-900);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-active-style] :is(button, a) {
+    transform: none !important;
+  }
+}
