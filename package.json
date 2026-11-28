@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "tsx scripts/sync-sources.ts",
     "build": "next build",
+    "sync:sources": "tsx scripts/sync-sources.ts",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",

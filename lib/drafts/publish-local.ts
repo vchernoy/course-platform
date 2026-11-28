@@ -1,21 +1,21 @@
 import fs from "fs";
 import path from "path";
+import { allCollectionDirs, assertNoCrossSourceLink } from "@/lib/content-roots";
 import type { DraftMutationResult } from "@/lib/draft-action-result";
 import { CONFLICT_MSG } from "@/lib/drafts/publish-messages";
 import type { DraftStored } from "@/lib/drafts/types";
 import { hashPublishedMdxSource } from "@/lib/drafts/source-hash";
 
-/** Ensures resolved path is under `content/offerings` or `content/sites` (relative to cwd). */
+/** Ensures resolved path is under `content/offerings` or `content/sites` of a content root. */
 export function assertWritablePublishedMdxPath(filePath: string): void {
   const resolved = path.resolve(filePath);
-  const cwd = process.cwd();
-  const offeringsRoot = path.resolve(path.join(cwd, "content", "offerings"));
-  const sitesRoot = path.resolve(path.join(cwd, "content", "sites"));
-  const relO = path.relative(offeringsRoot, resolved);
-  const relS = path.relative(sitesRoot, resolved);
-  const underOfferings = relO !== "" && !relO.startsWith("..") && !path.isAbsolute(relO);
-  const underSites = relS !== "" && !relS.startsWith("..") && !path.isAbsolute(relS);
-  if (!underOfferings && !underSites) {
+  const inside = allCollectionDirs().some((dir) => {
+    const rel = path.relative(path.resolve(dir), resolved);
+    return rel !== "" && !rel.startsWith("..") && !path.isAbsolute(rel);
+  });
+  // Also follow symlinks: the real target must stay in the same source.
+  assertNoCrossSourceLink(resolved);
+  if (!inside) {
     throw new Error("Refusing to write outside content/offerings or content/sites.");
   }
 }
