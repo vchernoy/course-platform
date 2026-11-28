@@ -2,6 +2,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import "./globals.css";
 import "katex/dist/katex.min.css";
+import "@vchernoy/active-runtime/style.css";
 import "./styles.css";
 import { STYLE_BOOT_SCRIPT } from "@/lib/styles";
 

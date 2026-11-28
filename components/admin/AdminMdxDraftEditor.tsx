@@ -1,5 +1,7 @@
 "use client";
 
+import { ActiveDocumentClient } from "@/components/mdx/ActiveDocumentClient";
+
 import { previewLessonMdxAction } from "@/lib/admin-preview-lesson-action";
 import { previewSiteMdxAction } from "@/lib/admin-preview-site-action";
 import {
@@ -294,9 +296,9 @@ export function AdminMdxDraftEditor(props: AdminMdxDraftEditorProps) {
             {preview.error}
           </div>
         ) : (
-          <div
+          <ActiveDocumentClient
             className="mt-4 rounded-xl border border-zinc-200 bg-white px-4 py-6 shadow-sm"
-            dangerouslySetInnerHTML={{ __html: preview.html }}
+            html={preview.html}
           />
         )}
       </section>

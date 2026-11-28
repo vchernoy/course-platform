@@ -227,3 +227,83 @@ Escape literal dollar signs when needed (e.g. `\$100`) to avoid accidental math 
 - [Architecture](./architecture.md)
 - [Auth and visibility](./auth-and-visibility.md)
 - [Content layout](./content-layout.md)
+
+## Optional ActiveMD document (0.11.0)
+
+Inside an authorized lesson, use a **literal string** attribute:
+
+```mdx
+<ActiveDocument source="../assets/compound-interest.md" />
+```
+
+The source is a UTF-8 Markdown file in that offering's `assets/` directory,
+limited to 64 KiB. Nested safe filenames work; URLs, absolute paths, traversal,
+symlinks and `.mdx` files are rejected. No browser endpoint fetches the source.
+The component inherits the enclosing learner/admin route's authorization; it is
+not registered on public site pages. Do not place secrets in document content.
+
+The server uses the published sanitized `renderActive` pipeline and displays
+positioned author diagnostics. Numeric controls and math become live after
+hydration, with independent state per instance and listener cleanup on unmount.
+The locale is explicitly `en-US` on both server and client. No quiz attempts,
+reader values or results are persisted. Existing calculators and quizzes remain
+separate. See the compound-interest example in investing basics lesson 3.
+
+Admin HTML serialization renders the same sanitized defaults. Both the lesson
+preview form and draft editor mount each embedded ActiveMD document independently
+after inserting the serialized HTML, and destroy listeners when it changes.
+Existing calculator/quiz placeholders remain unchanged.
+
+### Why a component first?
+
+An isolated Markdown document avoids passing calc syntax through MDX's JSX
+expression restrictions (`blockJS` stays enabled), and avoids collisions with
+lesson directives, TOC and heading transforms. Direct integration into the full
+MDX remark pipeline remains a separate phase requiring plugin-order, directive,
+heading and safety evaluation. Nested ActiveMD headings are outside the lesson
+TOC. Do not replace existing lesson components until authenticated route testing
+has verified the integration.
+
+### Validation
+
+`npm test` covers safe source resolution, real lesson compilation and static
+preview defaults and multiple serialized preview documents. `npm run test:browser` uses a test-only local host with the real
+client component to check hydration, numeric/math updates, independent instances
+and unmount/remount in Chromium, Firefox and WebKit. It does not bypass or test
+Clerk, and is not proof of authenticated production route acceptance.
+
+### Write ActiveMD directly inside an MDX file
+
+Use an explicit `active-md` fence. Four backticks around the block allow the
+usual three-backtick calc fence inside it:
+
+`````mdx
+<Details title="Normal MDX">Existing components still work.</Details>
+
+````active-md
+```calc
+input hours = 2 in 0..12
+cost = hours * 50
+```
+
+:edit[Hours]{input=hours}
+
+Cost: :value[cost]{format=fixed:2}.
+
+$$C = {{hours}} \times 50 = {{cost | fixed:2}}$$
+````
+`````
+
+Each fence is an independent ActiveMD document. Variables do not flow between
+fences, asset-backed documents or surrounding MDX. Inside it, write ActiveMD
+Markdown, controls and math; platform JSX components such as `VideoPlayer` stay
+outside the fence. The same 64 KiB source limit, sanitized renderer and client
+lifecycle apply. Diagnostics use line/column positions within the embedded block.
+
+This form works with MDX `blockJS` enabled: code content is passed as a literal
+string, not as a JSX JavaScript expression. Ordinary `calc` code examples remain
+examples; unmarked calc/controls throughout the MDX page are not automatically
+reactive. Full-page plugin integration still needs separate design and tests.
+
+Asset-backed documents resolve through `config/sources.yaml`, including external
+course repositories, and never fall back to an unregistered local offering.

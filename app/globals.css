@@ -81,3 +81,11 @@
     overflow-y: hidden;
   }
 }
+
+/* ActiveMD stays within its lesson island; existing MDX styles remain separate. */
+.active-document { max-width: 100%; overflow-wrap: anywhere; }
+.active-document .active-input-label { margin-inline-end: .5rem; }
+.active-document input[type="number"] { width: 8rem; max-width: 100%; border: 1px solid #a1a1aa; border-radius: .25rem; padding: .2rem .4rem; }
+.active-document input[type="range"] { max-width: 100%; vertical-align: middle; }
+.active-document .active-math-scroll { max-width: 100%; overflow-x: auto; }
+.active-document output { font-variant-numeric: tabular-nums; }
