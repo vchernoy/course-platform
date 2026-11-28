@@ -1,6 +1,6 @@
 import fs from "fs";
 import yaml from "yaml";
-import { customerConfigFiles } from "@/lib/content-roots";
+import { customerConfigFiles, readContentFile } from "@/lib/content-roots";
 import { isSafeSlug } from "@/lib/slug";
 import { normalizeEmail } from "@/lib/students";
 
@@ -418,7 +418,7 @@ export function mergeAdminsConfigs(configs: readonly AdminsConfig[]): AdminsConf
 
 function readAdminsFile(file: string): AdminsConfig {
   try {
-    return validateAdminsContent(yaml.parse(fs.readFileSync(file, "utf8")));
+    return validateAdminsContent(yaml.parse(readContentFile(file)));
   } catch (e) {
     throw new Error(`${file}: ${e instanceof Error ? e.message : String(e)}`);
   }

@@ -1,11 +1,13 @@
 import fs from "fs";
 import path from "path";
-import { offeringDir } from "@/lib/content-roots";
+import { containedFileRealPath, offeringDir } from "@/lib/content-roots";
 import { assertSafeAssetSegments, assertSafeSlug, isSafeSlug } from "@/lib/slug";
 
 
-export function offeringAssetsDir(offeringSlug: string): string {
-  return path.join(/*turbopackIgnore: true*/ offeringDir(offeringSlug), "assets");
+/** `assets/` folder of an offering, or null when no configured source has the offering. */
+export function offeringAssetsDir(offeringSlug: string): string | null {
+  const dir = offeringDir(offeringSlug);
+  return dir ? path.join(/*turbopackIgnore: true*/ dir, "assets") : null;
 }
 
 /** Rewrite markdown images so ../assets/foo resolves under this offering. */
@@ -31,10 +33,11 @@ export function safeAssetFilePath(offeringSlug: string, segments: string[]): str
     return null;
   }
   const root = offeringAssetsDir(offeringSlug);
+  if (!root) return null;
   const resolved = resolveUnderAssetsRoot(root, segments);
   if (!resolved) return null;
-  if (!fs.existsSync(/*turbopackIgnore: true*/ resolved) || !fs.statSync(/*turbopackIgnore: true*/ resolved).isFile()) return null;
-  return resolved;
+  // Real location must stay inside this offering's assets/ (no symlinks out, e.g. to config/).
+  return containedFileRealPath(resolved, root);
 }
 
 const EXT_MIME: Record<string, string> = {

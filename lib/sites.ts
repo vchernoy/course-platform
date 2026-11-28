@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import yaml from "yaml";
-import { listCollectionSlugs, siteDir } from "@/lib/content-roots";
+import { listCollectionSlugs, readContentFile, siteDir } from "@/lib/content-roots";
 import { assertSafeSlug, isSafeSlug } from "@/lib/slug";
 
 export type SiteVisibility = "private" | "public" | "unlisted";
@@ -86,12 +86,19 @@ export function validateSiteContent(raw: unknown): SiteMeta {
   return out;
 }
 
+/** Folder of a configured site; throws "Site not found" when no source has it. */
+function requireSiteDir(siteSlug: string): string {
+  const dir = siteDir(siteSlug);
+  if (!dir) throw new Error(`Site not found: ${siteSlug} (no configured source has it)`);
+  return dir;
+}
+
 export function siteYamlPath(siteSlug: string): string {
-  return path.join(/*turbopackIgnore: true*/ siteDir(siteSlug), "site.yaml");
+  return path.join(/*turbopackIgnore: true*/ requireSiteDir(siteSlug), "site.yaml");
 }
 
 export function sitePagesDir(siteSlug: string): string {
-  return path.join(/*turbopackIgnore: true*/ siteDir(siteSlug), "pages");
+  return path.join(/*turbopackIgnore: true*/ requireSiteDir(siteSlug), "pages");
 }
 
 /** Path to the MDX file for a logical page slug (`index` → `index.mdx`). */
@@ -129,7 +136,7 @@ export function loadSite(siteSlug: string): SiteMeta {
   if (!fs.existsSync(yamlPath)) {
     throw new Error(`Site not found: ${siteSlug} (missing ${yamlPath})`);
   }
-  const raw = yaml.parse(fs.readFileSync(yamlPath, "utf8"));
+  const raw = yaml.parse(readContentFile(yamlPath));
   const meta = validateSiteContent(raw);
   verifySiteOnDisk(siteSlug, meta);
   return meta;
@@ -145,7 +152,7 @@ export function listSiteSlugs(): string[] {
     if (!fs.existsSync(siteYamlPath(slug))) continue;
     if (!fs.existsSync(sitePageFilePath(slug, "index"))) continue;
     try {
-      const raw = yaml.parse(fs.readFileSync(siteYamlPath(slug), "utf8"));
+      const raw = yaml.parse(readContentFile(siteYamlPath(slug)));
       const meta = validateSiteContent(raw);
       verifySiteOnDisk(slug, meta);
       slugs.push(slug);
@@ -189,7 +196,7 @@ export function loadSitePageSource(siteSlug: string, pageSlug: string): string {
   if (!fs.existsSync(filePath)) {
     throw new Error(`Site page missing: ${filePath}`);
   }
-  return fs.readFileSync(filePath, "utf8");
+  return readContentFile(filePath);
 }
 
 /** Treat missing visibility as private (safest default). */

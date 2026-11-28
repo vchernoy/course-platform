@@ -13,9 +13,13 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { loadEnvConfig } from "@next/env";
 import { EXTERNAL_CONTENT_DIR, githubCloneDir, loadSourcesConfig, sourceRootDir } from "../lib/sources";
 
 const projectRoot = process.cwd();
+// Load .env, .env.local, .env.production[.local] the same way `next build` does, so tokens and
+// SOURCES_STRICT set there apply here too (this script runs before Next.js loads them).
+loadEnvConfig(projectRoot, process.env.NODE_ENV === "development", { info: () => {}, error: console.error });
 const strict = process.env.VERCEL === "1" || process.env.SOURCES_STRICT === "1";
 
 function log(msg: string) {
@@ -54,6 +58,25 @@ function clone(repo: string, ref: string | undefined, token: string | undefined,
     throw new Error(`git clone failed: ${clean.trim()}`);
   }
   fs.rmSync(path.join(target, ".git"), { recursive: true, force: true });
+  const links = findSymlinks(target);
+  if (links.length) {
+    fs.rmSync(target, { recursive: true, force: true });
+    throw new Error(
+      `repository contains symlinks, which are not allowed in content sources: ${links.slice(0, 5).join(", ")}` +
+        (links.length > 5 ? ` (+${links.length - 5} more)` : "")
+    );
+  }
+}
+
+/** Relative paths of all symlinks under `dir`. Symlinks could point into another customer's files. */
+function findSymlinks(dir: string, base = dir): string[] {
+  const out: string[] = [];
+  for (const d of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, d.name);
+    if (d.isSymbolicLink()) out.push(path.relative(base, p));
+    else if (d.isDirectory()) out.push(...findSymlinks(p, base));
+  }
+  return out;
 }
 
 function describe(root: string): string {

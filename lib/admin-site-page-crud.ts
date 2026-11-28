@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import yaml from "yaml";
+import { assertNoCrossSourceLink } from "@/lib/content-roots";
 import { validateSiteContent, type SiteMeta } from "@/lib/sites";
 import { assertSafeSlug, isSafeSlug, SLUG_MAX_LENGTH } from "@/lib/slug";
 
@@ -24,6 +25,8 @@ function assertPathUnderSitesRoot(siteRootResolved: string, targetPath: string):
   if (rel.startsWith("..") || path.isAbsolute(rel)) {
     throw new Error("Refusing to write outside content/sites/<siteSlug>.");
   }
+  // Symlinks must not lead into another content source.
+  assertNoCrossSourceLink(resolved);
 }
 
 export function resolveSitePageFilePath(

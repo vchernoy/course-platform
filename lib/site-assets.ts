@@ -1,13 +1,14 @@
 import fs from "fs";
 import path from "path";
-import { siteDir } from "@/lib/content-roots";
+import { containedFileRealPath, siteDir } from "@/lib/content-roots";
 import { resolveUnderAssetsRoot } from "@/lib/offering-assets";
 import { assertSafeAssetSegments, assertSafeSlug, isSafeSlug } from "@/lib/slug";
 
 
-export function siteAssetsDir(siteSlug: string): string {
+export function siteAssetsDir(siteSlug: string): string | null {
   assertSafeSlug("siteSlug", siteSlug);
-  return path.join(/*turbopackIgnore: true*/ siteDir(siteSlug), "assets");
+  const dir = siteDir(siteSlug);
+  return dir ? path.join(/*turbopackIgnore: true*/ dir, "assets") : null;
 }
 
 /**
@@ -44,8 +45,9 @@ export function safeSiteAssetFilePath(siteSlug: string, segments: string[]): str
     return null;
   }
   const root = siteAssetsDir(siteSlug);
+  if (!root) return null;
   const resolved = resolveUnderAssetsRoot(root, segments);
   if (!resolved) return null;
-  if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) return null;
-  return resolved;
+  // Real location must stay inside this site's assets/ (no symlinks out).
+  return containedFileRealPath(resolved, root);
 }

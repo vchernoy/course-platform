@@ -92,8 +92,8 @@ describe("without config/sources.yaml", () => {
     assert.equal(emailHasOfferingAccess("sample@example.com", "sample-course"), true);
   });
 
-  it("falls back to a path in this repo for unknown slugs", () => {
-    assert.equal(offeringDir("nope"), path.join(app, "content/offerings/nope"));
+  it("returns not found for unknown slugs", () => {
+    assert.equal(offeringDir("nope"), null);
     assert.throws(() => loadOffering("nope"), /Offering not found: nope/);
   });
 });

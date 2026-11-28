@@ -103,32 +103,37 @@ export function listCollectionSlugs(collection: ContentCollection, customer?: st
     .sort();
 }
 
-/** The source that holds an offering or site, or null if none does. Callers validate `slug`. */
+/**
+ * The source that holds an offering or site, or null if none does. Throws when two sources have
+ * the slug, so a direct URL can never silently pick one source (and its customer's permissions).
+ */
 export function findCollectionItem(collection: ContentCollection, slug: string): CollectionItem | null {
   if (!isSafeSlug(slug)) return null;
+  const matches: CollectionItem[] = [];
   for (const root of contentRoots()) {
     const dir = path.join(/*turbopackIgnore: true*/ collectionDir(root, collection), slug);
     if (fs.existsSync(path.join(/*turbopackIgnore: true*/ dir, markerFile(collection)))) {
-      return { slug, customer: root.customer, root, dir };
+      matches.push({ slug, customer: root.customer, root, dir });
     }
   }
-  return null;
+  if (matches.length > 1) {
+    const [a, b] = matches as [CollectionItem, CollectionItem];
+    throw new Error(
+      `Duplicate ${collection} slug "${slug}" in sources ${a.customer}/${a.root.sourceId} and ` +
+        `${b.customer}/${b.root.sourceId}. Slugs are part of URLs and must be unique; rename one.`
+    );
+  }
+  return matches[0] ?? null;
 }
 
-/**
- * Folder of one offering or site. When no source has it, returns a path under this repository
- * (callers then report "not found" with that path).
- */
-export function resolveCollectionItemDir(collection: ContentCollection, slug: string): string {
-  return findCollectionItem(collection, slug)?.dir ?? path.join(/*turbopackIgnore: true*/ process.cwd(), "content", collection, slug);
+/** Folder of an offering, or null when no configured source has it (no fallback to this repo). */
+export function offeringDir(offeringSlug: string): string | null {
+  return findCollectionItem("offerings", offeringSlug)?.dir ?? null;
 }
 
-export function offeringDir(offeringSlug: string): string {
-  return resolveCollectionItemDir("offerings", offeringSlug);
-}
-
-export function siteDir(siteSlug: string): string {
-  return resolveCollectionItemDir("sites", siteSlug);
+/** Folder of a site, or null when no configured source has it (no fallback to this repo). */
+export function siteDir(siteSlug: string): string | null {
+  return findCollectionItem("sites", siteSlug)?.dir ?? null;
 }
 
 export function customerOfOffering(offeringSlug: string): string | null {
@@ -154,4 +159,84 @@ export function allCollectionDirs(): string[] {
     out.push(collectionDir(root, "offerings"), collectionDir(root, "sites"));
   }
   return out;
+}
+
+/*
+ * Symlink containment. Repositories can contain symlinks, and git checkouts keep them, so a file
+ * that looks like it belongs to one source could point into another source (another customer's
+ * students.yaml, say). Every content read goes through readContentFile/assertNoCrossSourceLink,
+ * which require the file's real location to be in the same source as its logical location.
+ */
+
+function realpathOrNull(p: string): string | null {
+  try {
+    return fs.realpathSync(/*turbopackIgnore: true*/ p);
+  } catch {
+    return null;
+  }
+}
+
+/** True when `child` is `parent` or inside it (both absolute). */
+export function isPathInside(child: string, parent: string): boolean {
+  const rel = path.relative(/*turbopackIgnore: true*/ parent, child);
+  return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
+}
+
+/** Deepest root containing `p`, comparing against each root's real (`real`) or configured path. */
+function owningRoot(p: string, real: boolean): ContentRoot | null {
+  let best: { root: ContentRoot; len: number } | null = null;
+  for (const root of contentRoots()) {
+    const base = real ? realpathOrNull(root.dir) : path.resolve(/*turbopackIgnore: true*/ root.dir);
+    if (!base || !isPathInside(p, base)) continue;
+    if (!best || base.length > best.len) best = { root, len: base.length };
+  }
+  return best?.root ?? null;
+}
+
+const sameRoot = (a: ContentRoot | null, b: ContentRoot | null) =>
+  !!a && !!b && a.customer === b.customer && a.sourceId === b.sourceId;
+
+/**
+ * Throws if `file` (which may not exist yet) resolves, through symlinks, to a location owned by a
+ * different source than the one its path belongs to. Missing files pass; callers handle them.
+ */
+export function assertNoCrossSourceLink(file: string): void {
+  const logical = owningRoot(path.resolve(/*turbopackIgnore: true*/ file), false);
+  let probe = path.resolve(/*turbopackIgnore: true*/ file);
+  let real = realpathOrNull(probe);
+  // For a file that does not exist yet (publish target), check its nearest existing parent.
+  while (!real && path.dirname(probe) !== probe) {
+    probe = path.dirname(probe);
+    real = realpathOrNull(probe);
+  }
+  if (!real) return;
+  const actual = owningRoot(real, true);
+  // Outside every source on both sides: nothing to leak across (other guards bound such paths).
+  if (!logical && !actual) return;
+  if (!sameRoot(logical, actual)) {
+    throw new Error(`Refusing to use ${file}: it links outside its content source.`);
+  }
+}
+
+/** Read a content or config file after {@link assertNoCrossSourceLink}. */
+export function readContentFile(file: string): string {
+  assertNoCrossSourceLink(file);
+  return fs.readFileSync(/*turbopackIgnore: true*/ file, "utf8");
+}
+
+/**
+ * Real path of an existing regular file that stays inside `rootDir` (after resolving symlinks) and
+ * inside the same source; null otherwise. Used for asset downloads.
+ */
+export function containedFileRealPath(file: string, rootDir: string): string | null {
+  const real = realpathOrNull(file);
+  const realRoot = realpathOrNull(rootDir);
+  if (!real || !realRoot || !isPathInside(real, realRoot)) return null;
+  try {
+    assertNoCrossSourceLink(file);
+    if (!fs.statSync(/*turbopackIgnore: true*/ real).isFile()) return null;
+  } catch {
+    return null;
+  }
+  return real;
 }

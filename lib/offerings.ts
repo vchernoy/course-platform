@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import yaml from "yaml";
-import { listCollectionSlugs, offeringDir } from "@/lib/content-roots";
+import { listCollectionSlugs, offeringDir, readContentFile } from "@/lib/content-roots";
 import { assertSafeSlug, isSafeSlug } from "@/lib/slug";
 
 export type LessonMeta = { slug: string; title: string };
@@ -200,11 +200,11 @@ export function validateOfferingContent(raw: unknown): OfferingMeta {
 
 export function loadOffering(offeringSlug: string): OfferingMeta {
   assertSafeSlug("offeringSlug", offeringSlug);
-  const offeringPath = path.join(/*turbopackIgnore: true*/ offeringDir(offeringSlug), "offering.yaml");
-  if (!fs.existsSync(offeringPath)) {
-    throw new Error(`Offering not found: ${offeringSlug} (missing ${offeringPath})`);
+  const dir = offeringDir(offeringSlug);
+  if (!dir) {
+    throw new Error(`Offering not found: ${offeringSlug} (no configured source has it)`);
   }
-  const raw = yaml.parse(fs.readFileSync(offeringPath, "utf8"));
+  const raw = yaml.parse(readContentFile(path.join(/*turbopackIgnore: true*/ dir, "offering.yaml")));
   return validateOfferingContent(raw);
 }
 
@@ -273,7 +273,11 @@ export function getLessonFilePath(
   moduleSlug: string,
   lessonSlug: string
 ): string {
-  return path.join(/*turbopackIgnore: true*/ offeringDir(offeringSlug), moduleSlug, `${lessonSlug}.mdx`);
+  const dir = offeringDir(offeringSlug);
+  if (!dir) {
+    throw new Error(`Offering not found: ${offeringSlug} (no configured source has it)`);
+  }
+  return path.join(/*turbopackIgnore: true*/ dir, moduleSlug, `${lessonSlug}.mdx`);
 }
 
 export function loadLessonSource(
@@ -288,5 +292,5 @@ export function loadLessonSource(
   if (!fs.existsSync(filePath)) {
     throw new Error(`Lesson file missing: ${filePath}`);
   }
-  return fs.readFileSync(filePath, "utf8");
+  return readContentFile(filePath);
 }

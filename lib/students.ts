@@ -1,6 +1,6 @@
 import fs from "fs";
 import yaml from "yaml";
-import { customerConfigFiles, customerOfOffering } from "@/lib/content-roots";
+import { customerConfigFiles, customerOfOffering, readContentFile } from "@/lib/content-roots";
 import { isSafeSlug } from "@/lib/slug";
 
 export type StudentEntry = { email: string; offerings: string[] };
@@ -131,7 +131,7 @@ export function mergeStudentsConfigs(configs: readonly StudentsConfig[]): Studen
 
 function readStudentsFile(file: string): StudentsConfig {
   try {
-    return validateStudentsContent(yaml.parse(fs.readFileSync(file, "utf8")));
+    return validateStudentsContent(yaml.parse(readContentFile(file)));
   } catch (e) {
     throw new Error(`${file}: ${e instanceof Error ? e.message : String(e)}`);
   }

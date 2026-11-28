@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { allCollectionDirs } from "@/lib/content-roots";
+import { allCollectionDirs, assertNoCrossSourceLink } from "@/lib/content-roots";
 import type { DraftMutationResult } from "@/lib/draft-action-result";
 import { CONFLICT_MSG } from "@/lib/drafts/publish-messages";
 import type { DraftStored } from "@/lib/drafts/types";
@@ -13,6 +13,8 @@ export function assertWritablePublishedMdxPath(filePath: string): void {
     const rel = path.relative(path.resolve(dir), resolved);
     return rel !== "" && !rel.startsWith("..") && !path.isAbsolute(rel);
   });
+  // Also follow symlinks: the real target must stay in the same source.
+  assertNoCrossSourceLink(resolved);
   if (!inside) {
     throw new Error("Refusing to write outside content/offerings or content/sites.");
   }
