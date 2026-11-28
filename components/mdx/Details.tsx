@@ -13,7 +13,7 @@ export function Details({ title = DEFAULT_TITLE, children }: Props) {
 
   return (
     <details className="group my-4 rounded-lg border border-zinc-200 bg-white px-4 py-2 shadow-sm open:shadow-md">
-      <summary className="cursor-pointer select-none text-sm font-semibold text-zinc-900 [&::-webkit-details-marker]:hidden">
+      <summary className="list-none cursor-pointer select-none text-sm font-semibold text-zinc-900 [&::-webkit-details-marker]:hidden">
         <span className="inline-flex items-center gap-2">
           <span
             aria-hidden
