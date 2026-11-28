@@ -1,9 +1,9 @@
 import fs from "fs";
 import path from "path";
 import yaml from "yaml";
+import { offeringDir, readContentFile } from "@/lib/content-roots";
 import { assertSafeSlug, isSafeSlug } from "@/lib/slug";
 
-const CONTENT_ROOT = path.join(process.cwd(), "content", "offerings");
 
 /** Row shape matches {@link VideoPlayer} direct props (keep in sync manually). */
 export type OfferingVideoEntry =
@@ -100,10 +100,12 @@ export function validateVideosContent(raw: unknown): OfferingVideoMap {
 
 export function loadOfferingVideos(offeringSlug: string): OfferingVideoMap {
   assertSafeSlug("offeringSlug", offeringSlug);
-  const filePath = path.join(CONTENT_ROOT, offeringSlug, "videos.yaml");
+  const dir = offeringDir(offeringSlug);
+  if (!dir) return {};
+  const filePath = path.join(/*turbopackIgnore: true*/ dir, "videos.yaml");
   if (!fs.existsSync(filePath)) {
     return {};
   }
-  const raw = yaml.parse(fs.readFileSync(filePath, "utf8"));
+  const raw = yaml.parse(readContentFile(filePath));
   return validateVideosContent(raw);
 }

@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import yaml from "yaml";
+import { listCollectionSlugs, readContentFile, siteDir } from "@/lib/content-roots";
 import { assertSafeSlug, isSafeSlug } from "@/lib/slug";
 
 export type SiteVisibility = "private" | "public" | "unlisted";
@@ -18,7 +19,6 @@ export type SiteMeta = {
   navigation: SiteNavItem[];
 };
 
-const CONTENT_SITES_ROOT = path.join(process.cwd(), "content", "sites");
 
 function prefix(msg: string) {
   return `site.yaml: ${msg}`;
@@ -86,22 +86,29 @@ export function validateSiteContent(raw: unknown): SiteMeta {
   return out;
 }
 
+/** Folder of a configured site; throws "Site not found" when no source has it. */
+function requireSiteDir(siteSlug: string): string {
+  const dir = siteDir(siteSlug);
+  if (!dir) throw new Error(`Site not found: ${siteSlug} (no configured source has it)`);
+  return dir;
+}
+
 export function siteYamlPath(siteSlug: string): string {
-  return path.join(CONTENT_SITES_ROOT, siteSlug, "site.yaml");
+  return path.join(/*turbopackIgnore: true*/ requireSiteDir(siteSlug), "site.yaml");
 }
 
 export function sitePagesDir(siteSlug: string): string {
-  return path.join(CONTENT_SITES_ROOT, siteSlug, "pages");
+  return path.join(/*turbopackIgnore: true*/ requireSiteDir(siteSlug), "pages");
 }
 
 /** Path to the MDX file for a logical page slug (`index` → `index.mdx`). */
 export function sitePageFilePath(siteSlug: string, pageSlug: string): string {
   assertSafeSlug("siteSlug", siteSlug);
   if (pageSlug === "index") {
-    return path.join(sitePagesDir(siteSlug), "index.mdx");
+    return path.join(/*turbopackIgnore: true*/ sitePagesDir(siteSlug), "index.mdx");
   }
   assertSafeSlug("pageSlug", pageSlug);
-  return path.join(sitePagesDir(siteSlug), `${pageSlug}.mdx`);
+  return path.join(/*turbopackIgnore: true*/ sitePagesDir(siteSlug), `${pageSlug}.mdx`);
 }
 
 function verifySiteOnDisk(siteSlug: string, meta: SiteMeta): void {
@@ -129,28 +136,23 @@ export function loadSite(siteSlug: string): SiteMeta {
   if (!fs.existsSync(yamlPath)) {
     throw new Error(`Site not found: ${siteSlug} (missing ${yamlPath})`);
   }
-  const raw = yaml.parse(fs.readFileSync(yamlPath, "utf8"));
+  const raw = yaml.parse(readContentFile(yamlPath));
   const meta = validateSiteContent(raw);
   verifySiteOnDisk(siteSlug, meta);
   return meta;
 }
 
 /**
- * Site folders under `content/sites` that have `site.yaml` and `pages/index.mdx`.
+ * Site folders (public and private content roots) that have `site.yaml` and `pages/index.mdx`.
  * Invalid YAML is skipped (same spirit as listing offerings with broken yaml still appearing — callers use {@link loadSite} which throws).
  */
 export function listSiteSlugs(): string[] {
-  if (!fs.existsSync(CONTENT_SITES_ROOT)) return [];
-  const names = fs.readdirSync(CONTENT_SITES_ROOT, { withFileTypes: true });
   const slugs: string[] = [];
-  for (const d of names) {
-    if (!d.isDirectory()) continue;
-    const slug = d.name;
-    if (!isSafeSlug(slug)) continue;
+  for (const slug of listCollectionSlugs("sites")) {
     if (!fs.existsSync(siteYamlPath(slug))) continue;
     if (!fs.existsSync(sitePageFilePath(slug, "index"))) continue;
     try {
-      const raw = yaml.parse(fs.readFileSync(siteYamlPath(slug), "utf8"));
+      const raw = yaml.parse(readContentFile(siteYamlPath(slug)));
       const meta = validateSiteContent(raw);
       verifySiteOnDisk(slug, meta);
       slugs.push(slug);
@@ -194,7 +196,7 @@ export function loadSitePageSource(siteSlug: string, pageSlug: string): string {
   if (!fs.existsSync(filePath)) {
     throw new Error(`Site page missing: ${filePath}`);
   }
-  return fs.readFileSync(filePath, "utf8");
+  return readContentFile(filePath);
 }
 
 /** Treat missing visibility as private (safest default). */

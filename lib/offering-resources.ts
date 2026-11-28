@@ -1,9 +1,9 @@
 import fs from "fs";
 import path from "path";
 import yaml from "yaml";
+import { offeringDir, readContentFile } from "@/lib/content-roots";
 import { assertSafeAssetSegments, assertSafeSlug, isSafeSlug } from "@/lib/slug";
 
-const CONTENT_ROOT = path.join(process.cwd(), "content", "offerings");
 
 function prefix(msg: string) {
   return `resources.yaml: ${msg}`;
@@ -127,11 +127,13 @@ export function validateResourcesContent(raw: unknown): OfferingResourceMap {
 
 export function loadOfferingResources(offeringSlug: string): OfferingResourceMap {
   assertSafeSlug("offeringSlug", offeringSlug);
-  const filePath = path.join(CONTENT_ROOT, offeringSlug, "resources.yaml");
+  const dir = offeringDir(offeringSlug);
+  if (!dir) return {};
+  const filePath = path.join(/*turbopackIgnore: true*/ dir, "resources.yaml");
   if (!fs.existsSync(filePath)) {
     return {};
   }
-  const raw = yaml.parse(fs.readFileSync(filePath, "utf8"));
+  const raw = yaml.parse(readContentFile(filePath));
   return validateResourcesContent(raw);
 }
 

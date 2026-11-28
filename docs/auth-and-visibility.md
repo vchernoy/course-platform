@@ -30,6 +30,8 @@ Restart `npm run dev` after changing `.env.local`.
 
 ## Students allowlist (`config/students.yaml`)
 
+> Every source of a customer may have its own `config/students.yaml` (and `config/admins.yaml`); they are combined, and only grant access to that customer's offerings and sites. See [Content sources](./content-sources.md).
+
 - Each row: **`email`** and **`offerings`** — array of folder slugs under `content/offerings/`.
 - Legacy **`courses`** array is accepted and normalized to **`offerings`**.
 - Emails are trimmed and compared case-insensitively.
