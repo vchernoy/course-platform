@@ -19,7 +19,7 @@ Optional fields:
 
 Path: `content/offerings/<offeringSlug>/videos.yaml`
 
-Optional registry for `<VideoPlayer assetId="..." />`. Keys are asset ids (slug-like). Entries include `provider` (`vimeo` \| `cloudflare`), provider-specific ids, optional `title`.
+Optional registry for `<VideoPlayer assetId="..." />`. Keys are asset ids (slug-like). Entries include `provider` (`bunny` \| `vimeo` \| `cloudflare`), provider-specific ids, optional `title`. For paid recordings use `provider: bunny` with `libraryId` and `videoId` ([Bunny Stream](./video-bunny.md)).
 
 See [MDX authoring](./mdx-authoring.md) for embed patterns and env vars.
 

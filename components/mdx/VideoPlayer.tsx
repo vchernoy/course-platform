@@ -1,7 +1,20 @@
 import type { CourseVideoMap } from "@/lib/offering-videos";
+import { bunnyEmbedUrl, isValidBunnyLibraryId, isValidBunnyVideoId } from "@/lib/bunny-stream";
+import { logDevWarning, logProdDiagnostic } from "@/lib/logger";
+import { customerOfOffering } from "@/lib/content-roots";
+import { bunnyLibraryOwner } from "@/lib/sources";
 
 /**
- * Direct iframe embed props (Vimeo or Cloudflare Stream). Not DRM — see README.
+ * Who a video is being rendered for. Set only by server code from the lesson's offering, never from
+ * MDX props. Bunny links are signed only when this customer owns the video's library.
+ */
+type SigningScope = { customer: string | null };
+
+/**
+ * Direct iframe embed props (Vimeo, Cloudflare Stream or Bunny Stream). Not DRM — see README.
+ *
+ * This is a server component: Bunny links are signed here, after the lesson route's enrollment
+ * check, with a key from server env (lib/bunny-stream.ts). Do not turn it into a client component.
  *
  * For MDX inside a lesson, the page wraps {@link createLessonVideoPlayer} so you can also pass
  * `{ assetId }` and resolve rows from `content/offerings/<slug>/videos.yaml`.
@@ -21,6 +34,13 @@ export type VideoPlayerProps =
       playbackId: string;
       title?: string;
       poster?: string;
+    }
+  | {
+      provider: "bunny";
+      libraryId: string;
+      videoId: string;
+      title?: string;
+      poster?: string;
     };
 
 /** Props MDX may pass: registry id or full direct {@link VideoPlayerProps}. */
@@ -36,8 +56,13 @@ function cloudflareIframeSrc(playbackId: string): string {
 
 /**
  * Renders a hosted video iframe from explicit provider props (backward compatible with all existing MDX).
+ * Without a lesson scope (see {@link createLessonVideoPlayer}) Bunny embeds are never signed.
  */
 export function VideoPlayer(props: VideoPlayerProps) {
+  return renderVideo(props, { customer: null });
+}
+
+function renderVideo(props: VideoPlayerProps, scope: SigningScope) {
   let iframeSrc: string | null = null;
 
   if (props.provider === "vimeo") {
@@ -60,6 +85,34 @@ export function VideoPlayer(props: VideoPlayerProps) {
       );
     }
     iframeSrc = cloudflareIframeSrc(id);
+  } else if (props.provider === "bunny") {
+    const libraryId = String(props.libraryId ?? "").trim();
+    const videoId = String(props.videoId ?? "").trim().toLowerCase();
+    if (!isValidBunnyLibraryId(libraryId) || !isValidBunnyVideoId(videoId)) {
+      return (
+        <div className="my-8 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          Bunny video needs a numeric <code className="font-mono">libraryId</code> and the video GUID as{" "}
+          <code className="font-mono">videoId</code> (in <code className="font-mono">videos.yaml</code> or the MDX
+          props).
+        </div>
+      );
+    }
+    const owner = bunnyLibraryOwner(libraryId);
+    const maySign = scope.customer !== null && owner === scope.customer;
+    const embed = bunnyEmbedUrl(libraryId, videoId, { sign: maySign });
+    if (!maySign) {
+      // Another customer's (or an unregistered) library: never mint a token for it.
+      logDevWarning(
+        "VideoPlayer",
+        `Bunny library ${libraryId} is not in bunnyLibraries of customer ${scope.customer ?? "(none)"}; embed is unsigned`
+      );
+      logProdDiagnostic("VideoPlayer", "bunny_library_not_in_scope");
+    } else if (!embed.signed) {
+      // Plays only while the library has token auth off, i.e. the video is effectively public.
+      logDevWarning("VideoPlayer", "BUNNY_STREAM_TOKEN_KEY not set; Bunny embed is unsigned");
+      logProdDiagnostic("VideoPlayer", "bunny_unsigned_embed");
+    }
+    iframeSrc = embed.src;
   } else {
     const _exhaustive: never = props;
     return _exhaustive;
@@ -81,6 +134,9 @@ export function VideoPlayer(props: VideoPlayerProps) {
           className="absolute inset-0 h-full w-full border-0"
           allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
           allowFullScreen
+          loading="lazy"
+          // Bunny's allowed-domain check reads the Referer; send our origin to the player host.
+          referrerPolicy="strict-origin-when-cross-origin"
         />
       </div>
     </figure>
@@ -89,8 +145,11 @@ export function VideoPlayer(props: VideoPlayerProps) {
 
 /**
  * Use as the MDX `VideoPlayer` component once per lesson render (closes over `videos.yaml` rows).
+ * `offeringSlug` sets the signing scope: Bunny videos are signed only for libraries that the
+ * offering's customer lists under `bunnyLibraries` in config/sources.yaml.
  */
-export function createLessonVideoPlayer(videos: CourseVideoMap) {
+export function createLessonVideoPlayer(videos: CourseVideoMap, offeringSlug?: string) {
+  const scope: SigningScope = { customer: offeringSlug ? customerOfOffering(offeringSlug) : null };
   return function VideoPlayerMdx(props: VideoPlayerMdxProps) {
     const maybeAssetId = (props as { assetId?: unknown }).assetId;
     const assetId = typeof maybeAssetId === "string" ? maybeAssetId.trim() : "";
@@ -106,9 +165,9 @@ export function createLessonVideoPlayer(videos: CourseVideoMap) {
           </div>
         );
       }
-      return <VideoPlayer {...row} />;
+      return renderVideo(row, scope);
     }
 
-    return <VideoPlayer {...(props as VideoPlayerProps)} />;
+    return renderVideo(props as VideoPlayerProps, scope);
   };
 }

@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import yaml from "yaml";
+import { isValidBunnyLibraryId, isValidBunnyVideoId } from "@/lib/bunny-stream";
 import { offeringDir, readContentFile } from "@/lib/content-roots";
 import { assertSafeSlug, isSafeSlug } from "@/lib/slug";
 
@@ -17,6 +18,15 @@ export type OfferingVideoEntry =
   | {
       provider: "cloudflare";
       playbackId: string;
+      title?: string;
+      poster?: string;
+    }
+  | {
+      provider: "bunny";
+      /** Bunny Stream library id (numeric). */
+      libraryId: string;
+      /** Bunny video GUID. */
+      videoId: string;
       title?: string;
       poster?: string;
     };
@@ -66,8 +76,29 @@ function parseOneEntry(assetId: string, raw: unknown): OfferingVideoEntry {
     return row;
   }
 
+  if (provider === "bunny") {
+    // YAML may give an unquoted library id as a number.
+    const libraryId =
+      typeof o.libraryId === "number" && Number.isInteger(o.libraryId)
+        ? String(o.libraryId)
+        : typeof o.libraryId === "string"
+          ? o.libraryId.trim()
+          : "";
+    if (!isValidBunnyLibraryId(libraryId)) {
+      throw new Error(prefix(`videos["${assetId}"].libraryId must be the numeric Bunny library id`));
+    }
+    const videoId = typeof o.videoId === "string" ? o.videoId.trim() : "";
+    if (!isValidBunnyVideoId(videoId)) {
+      throw new Error(prefix(`videos["${assetId}"].videoId must be the Bunny video GUID`));
+    }
+    const row: OfferingVideoEntry = { provider: "bunny", libraryId, videoId: videoId.toLowerCase() };
+    if (typeof o.title === "string" && o.title.trim()) row.title = o.title.trim();
+    if (typeof o.poster === "string" && o.poster.trim()) row.poster = o.poster.trim();
+    return row;
+  }
+
   throw new Error(
-    prefix(`videos["${assetId}"].provider must be "vimeo" or "cloudflare"`)
+    prefix(`videos["${assetId}"].provider must be "vimeo", "cloudflare" or "bunny"`)
   );
 }
 

@@ -108,7 +108,7 @@ function lessonMdxComponents(
   videos: OfferingVideoMap,
   resources: OfferingResourceMap
 ) {
-  const VideoPlayerMdx = createLessonVideoPlayer(videos);
+  const VideoPlayerMdx = createLessonVideoPlayer(videos, offeringSlug);
   const ResourceLinkMdx = createOfferingResourceLink(resources, offeringSlug);
   const LessonMdxAnchor = createMdxAnchor(offeringSlug);
 
