@@ -52,6 +52,8 @@ customers:
       - dir: ../local-course     # a folder on disk (local development, self-hosting)
 ```
 
+Optional per customer: `bunnyLibraries: ["123456"]`, the Bunny Stream libraries whose lesson recordings this customer may sign ([Bunny Stream](./video-bunny.md)).
+
 `tokenEnv` is the **name** of an environment variable, never the token itself. The file is validated, and a value that looks like a token is rejected.
 
 Without `config/sources.yaml`, this repository is the only source (customer `default`).

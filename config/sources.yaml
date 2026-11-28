@@ -14,6 +14,8 @@
 customers:
   - id: vchernoy
     title: Investing classes
+    # Bunny Stream libraries this customer owns (lesson videos are signed only for these):
+    # bunnyLibraries: ["123456"]
     sources:
       # This repository: sample offerings and sites, plus config/students.yaml and config/admins.yaml.
       - self: true

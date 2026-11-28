@@ -24,7 +24,16 @@ export type SourceSpec =
   /** A folder on disk, relative to this repository (local development, self-hosting, tests). */
   | { id: string; type: "dir"; dir: string; path?: string };
 
-export type CustomerSpec = { id: string; title?: string; sources: SourceSpec[] };
+export type CustomerSpec = {
+  id: string;
+  title?: string;
+  sources: SourceSpec[];
+  /**
+   * Bunny Stream library ids this customer owns. Lesson videos are signed only for libraries of the
+   * offering's own customer, so one customer's content can't mint links to another's recordings.
+   */
+  bunnyLibraries?: string[];
+};
 
 export type SourcesConfig = { customers: CustomerSpec[] };
 
@@ -127,6 +136,7 @@ export function validateSourcesContent(raw: unknown): SourcesConfig {
   const customers: CustomerSpec[] = [];
   const customerIds = new Set<string>();
   let selfOwner: string | null = null;
+  const libraryOwner = new Map<string, string>();
 
   root.customers.forEach((rawCustomer, ci) => {
     const where = `customers[${ci}]`;
@@ -163,7 +173,26 @@ export function validateSourcesContent(raw: unknown): SourcesConfig {
       return src;
     });
 
-    customers.push({ id, ...(title ? { title } : {}), sources });
+    let bunnyLibraries: string[] | undefined;
+    if (c.bunnyLibraries !== undefined) {
+      if (!Array.isArray(c.bunnyLibraries)) {
+        throw new Error(prefix(`${where}.bunnyLibraries must be a list of Bunny library ids`));
+      }
+      bunnyLibraries = c.bunnyLibraries.map((raw, li) => {
+        const lib = typeof raw === "number" && Number.isInteger(raw) ? String(raw) : typeof raw === "string" ? raw.trim() : "";
+        if (!/^\d{1,12}$/.test(lib)) {
+          throw new Error(prefix(`${where}.bunnyLibraries[${li}] must be a numeric Bunny library id`));
+        }
+        const prev = libraryOwner.get(lib);
+        if (prev && prev !== id) {
+          throw new Error(prefix(`Bunny library ${lib} is listed by both "${prev}" and "${id}"; a library belongs to one customer`));
+        }
+        libraryOwner.set(lib, id);
+        return lib;
+      });
+    }
+
+    customers.push({ id, ...(title ? { title } : {}), sources, ...(bunnyLibraries ? { bunnyLibraries } : {}) });
   });
 
   return { customers };
@@ -192,4 +221,12 @@ export function sourceRootDir(projectRoot: string, customerId: string, source: S
   else if (source.type === "github") base = githubCloneDir(projectRoot, customerId, source.id);
   else base = path.resolve(/*turbopackIgnore: true*/ projectRoot, source.dir);
   return source.path ? path.join(/*turbopackIgnore: true*/ base, source.path) : base;
+}
+
+/** Customer that lists `libraryId` under `bunnyLibraries`, or null. */
+export function bunnyLibraryOwner(libraryId: string, projectRoot: string = process.cwd()): string | null {
+  for (const c of loadSourcesConfig(projectRoot).customers) {
+    if (c.bunnyLibraries?.includes(libraryId)) return c.id;
+  }
+  return null;
 }

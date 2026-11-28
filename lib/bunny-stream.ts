@@ -69,13 +69,14 @@ export type BunnyEmbed = {
 export function bunnyEmbedUrl(
   libraryId: string,
   videoId: string,
-  opts: { env?: Env; nowMs?: number } = {}
+  opts: { env?: Env; nowMs?: number; sign?: boolean } = {}
 ): BunnyEmbed {
   if (!isValidBunnyLibraryId(libraryId)) throw new Error(`Invalid Bunny libraryId: ${JSON.stringify(libraryId)}`);
   if (!isValidBunnyVideoId(videoId)) throw new Error(`Invalid Bunny videoId: ${JSON.stringify(videoId)}`);
   const env = opts.env ?? process.env;
   const params = new URLSearchParams({ autoplay: "false", preload: "false", responsive: "true" });
-  const key = bunnyTokenKeyFor(libraryId, env);
+  // Callers pass sign: false when the viewer's customer doesn't own the library.
+  const key = opts.sign === false ? undefined : bunnyTokenKeyFor(libraryId, env);
   let expires: number | undefined;
   if (key) {
     expires = Math.floor((opts.nowMs ?? Date.now()) / 1000) + bunnyTokenTtlSeconds(env);

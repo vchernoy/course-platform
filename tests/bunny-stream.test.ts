@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { describe, it } from "node:test";
+import { afterEach, beforeEach, describe, it } from "node:test";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
@@ -87,28 +90,6 @@ describe("bunnyEmbedUrl", () => {
 });
 
 describe("VideoPlayer with provider bunny", () => {
-  it("renders a signed iframe from videos.yaml", () => {
-    const prev = process.env.BUNNY_STREAM_TOKEN_KEY;
-    process.env.BUNNY_STREAM_TOKEN_KEY = "secret-key";
-    try {
-      const videos = validateVideosContent({
-        videos: { "lesson-01": { provider: "bunny", libraryId: Number(LIB), videoId: VID.toUpperCase(), title: "Lecture 1" } },
-      });
-      const html = renderToStaticMarkup(createElement(createLessonVideoPlayer(videos), { assetId: "lesson-01" }));
-      const src = /src="([^"]+)"/.exec(html)?.[1]?.replace(/&amp;/g, "&") ?? "";
-      const u = new URL(src);
-      assert.equal(u.pathname, `/embed/${LIB}/${VID}`);
-      assert.match(u.searchParams.get("token") ?? "", /^[0-9a-f]{64}$/);
-      assert.ok(Number(u.searchParams.get("expires")) > Date.now() / 1000);
-      assert.ok(html.includes("Lecture 1"));
-      assert.ok(html.includes('referrerPolicy="strict-origin-when-cross-origin"') || html.includes("referrerpolicy"));
-      assert.ok(!html.includes("secret-key"));
-    } finally {
-      if (prev === undefined) delete process.env.BUNNY_STREAM_TOKEN_KEY;
-      else process.env.BUNNY_STREAM_TOKEN_KEY = prev;
-    }
-  });
-
   it("shows a helper instead of an iframe for bad inline ids", () => {
     const html = renderToStaticMarkup(
       createElement(VideoPlayer, { provider: "bunny", libraryId: "1", videoId: "https://evil.example/x" })
@@ -122,5 +103,90 @@ describe("VideoPlayer with provider bunny", () => {
     assert.ok(vimeo.includes("https://player.vimeo.com/video/76979871"));
     const cf = renderToStaticMarkup(createElement(VideoPlayer, { provider: "cloudflare", playbackId: "abc" }));
     assert.ok(cf.includes("https://iframe.videodelivery.net/abc"));
+  });
+});
+
+/**
+ * Codex review on #30 (P1): signing must be scoped to the customer that owns the lesson, so one
+ * customer's content (or an admin preview) can't mint links to another customer's library.
+ */
+describe("Bunny signing is scoped to the offering's customer", () => {
+  const MINE = "111111";
+  const THEIRS = "222222";
+  const UNLISTED = "333333";
+  let tmp: string;
+  const origCwd = process.cwd();
+  const prevKey = process.env.BUNNY_STREAM_TOKEN_KEY;
+
+  const write = (file: string, body: string) => {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, body, "utf8");
+  };
+  const offering = (root: string, slug: string) =>
+    write(
+      path.join(root, "content/offerings", slug, "offering.yaml"),
+      `title: "${slug}"\nformat: course\nmodules:\n  - slug: m\n    title: M\n    lessons:\n      - slug: l\n        title: L\n`
+    );
+  const tokenOf = (html: string) => {
+    const src = /src="([^"]+)"/.exec(html)?.[1]?.replace(/&amp;/g, "&");
+    assert.ok(src, "renders an iframe");
+    return new URL(src).searchParams.get("token");
+  };
+  const render = (offeringSlug: string | undefined, props: Record<string, unknown>, videos = {}) =>
+    renderToStaticMarkup(createElement(createLessonVideoPlayer(validateVideosContent({ videos }), offeringSlug), props as never));
+
+  beforeEach(() => {
+    tmp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "bunny-scope-")));
+    const app = path.join(tmp, "app");
+    write(
+      path.join(app, "config/sources.yaml"),
+      `customers:\n  - id: me\n    bunnyLibraries: ["${MINE}"]\n    sources:\n      - dir: ../me\n  - id: them\n    bunnyLibraries: [${THEIRS}]\n    sources:\n      - dir: ../them\n`
+    );
+    offering(path.join(tmp, "me"), "my-course");
+    offering(path.join(tmp, "them"), "their-course");
+    process.chdir(app);
+    process.env.BUNNY_STREAM_TOKEN_KEY = "shared-key";
+  });
+
+  afterEach(() => {
+    process.chdir(origCwd);
+    if (prevKey === undefined) delete process.env.BUNNY_STREAM_TOKEN_KEY;
+    else process.env.BUNNY_STREAM_TOKEN_KEY = prevKey;
+    fs.rmSync(tmp, { recursive: true, force: true });
+  });
+
+  it("signs the offering customer's own library", () => {
+    const html = render("my-course", { assetId: "rec" }, { rec: { provider: "bunny", libraryId: MINE, videoId: VID } });
+    assert.match(tokenOf(html) ?? "", /^[0-9a-f]{64}$/);
+  });
+
+  it("does not sign another customer's library from videos.yaml", () => {
+    const html = render("my-course", { assetId: "rec" }, { rec: { provider: "bunny", libraryId: THEIRS, videoId: VID } });
+    assert.equal(tokenOf(html), null);
+  });
+
+  it("does not sign another customer's library from inline MDX props (admin preview path)", () => {
+    const html = render("my-course", { provider: "bunny", libraryId: THEIRS, videoId: VID });
+    assert.equal(tokenOf(html), null);
+    // ...while the owning customer's lesson does get a token for the same video.
+    assert.ok(tokenOf(render("their-course", { provider: "bunny", libraryId: THEIRS, videoId: VID })));
+  });
+
+  it("does not sign a library no customer lists", () => {
+    assert.equal(tokenOf(render("my-course", { provider: "bunny", libraryId: UNLISTED, videoId: VID })), null);
+  });
+
+  it("does not sign without a lesson scope, or for an unknown offering", () => {
+    assert.equal(tokenOf(render(undefined, { provider: "bunny", libraryId: MINE, videoId: VID })), null);
+    assert.equal(tokenOf(render("no-such-course", { provider: "bunny", libraryId: MINE, videoId: VID })), null);
+    assert.equal(
+      tokenOf(renderToStaticMarkup(createElement(VideoPlayer, { provider: "bunny", libraryId: MINE, videoId: VID }))),
+      null
+    );
+  });
+
+  it("ignores scope-like props passed from MDX", () => {
+    const html = render("my-course", { provider: "bunny", libraryId: THEIRS, videoId: VID, scope: { customer: "them" }, customer: "them" });
+    assert.equal(tokenOf(html), null);
   });
 });

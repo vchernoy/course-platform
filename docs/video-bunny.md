@@ -17,7 +17,17 @@ Lesson recordings (Zoom, 200–400 MB, 2–4 h) are hosted on [Bunny Stream](htt
    - Optional `BUNNY_STREAM_TOKEN_TTL_SECONDS` (default `21600` = 6 h, allowed 60 s to 24 h). This is how long a page's player link keeps working; it needs to cover a full viewing.
 
    The key must never go in `videos.yaml`, MDX or any repository.
-5. **Redeploy** so the variable takes effect.
+5. **Register the library with its customer** in `config/sources.yaml` of the platform repo:
+
+   ```yaml
+   customers:
+     - id: vchernoy
+       bunnyLibraries: ["123456"]   # Bunny library ids this customer owns
+       sources: [...]
+   ```
+
+   Links are signed only for a lesson whose offering belongs to the customer listing the library. A library can be listed by one customer only. An unlisted library renders unsigned (and won't play with token auth on), so one customer's content or admin preview can never mint links to another customer's recordings.
+6. **Redeploy** so the variable and config take effect.
 
 ## Adding a recording (each lesson)
 
@@ -45,10 +55,11 @@ Lesson recordings (Zoom, 200–400 MB, 2–4 h) are hosted on [Bunny Stream](htt
 ## How the protection works
 
 - **Lesson access:** the lesson route renders only for an enrolled student (Clerk sign-in + `students.yaml`). `VideoPlayer` is a server component, so the signing happens on the server after that check, and the key never reaches the browser.
+- **Customer scope:** the player is told which customer the lesson's offering belongs to, by server code (MDX props can't set it). It signs only for libraries in that customer's `bunnyLibraries`. This also covers admin preview, which renders submitted MDX.
 - **Embed link:** `https://iframe.mediadelivery.net/embed/{libraryId}/{videoId}?token=…&expires=…`, where `token = SHA256_HEX(key + videoId + expires)` ([Bunny docs](https://docs.bunny.net/stream/token-authentication)). After `expires`, the link stops working, so a link copied out of the page is only useful for a few hours.
 - **Stream files:** CDN token authentication covers the HLS files the player loads ([Bunny docs](https://docs.bunny.net/cdn/security/token-authentication/advanced)).
 - **Validation:** library and video ids are validated (numeric library id, GUID video id), so content can't point the player anywhere else.
-- **Missing key:** the player still renders an unsigned link and logs `bunny_unsigned_embed`. That only plays while the library has token authentication **off**, which means the video is effectively public. Keep token auth on for paid courses.
+- **Not signed:** a library outside the lesson's customer logs `bunny_library_not_in_scope`. With a missing key, the player still renders an unsigned link and logs `bunny_unsigned_embed`. That only plays while the library has token authentication **off**, which means the video is effectively public. Keep token auth on for paid courses.
 
 This is not DRM: an enrolled student can still screen-record. Bunny offers DRM (MediaCage) as a paid add-on if that ever matters.
 
