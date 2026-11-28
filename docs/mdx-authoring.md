@@ -117,7 +117,7 @@ The remote MDX pipeline removes JSX attributes whose values are JavaScript expre
 | `<CompoundInterestCalculator />` | Client interactive demo |
 | `![alt](../assets/file.png)` | Rewritten to authenticated asset URL |
 | `<CourseImage src="..." alt="..." />` | Wrapper resolving offering-relative paths |
-| `<VideoPlayer … />` | Vimeo / Cloudflare iframe embed |
+| `<VideoPlayer … />` | Bunny Stream (signed), Vimeo or Cloudflare iframe embed |
 | `<ResourceLink assetId="..." />` | Link from `resources.yaml` — local file via asset API or external `https` URL |
 | `<DownloadFile assetId="..." />` | Signed-offering file delivery hook |
 | `<Quiz … />` | Client-only MCQ; see below |
@@ -148,11 +148,12 @@ No server persistence: state resets on navigation.
 ## VideoPlayer
 
 - **Registry:** `<VideoPlayer assetId="lesson-1-recording" />` — id defined in `videos.yaml`.
-- **Inline:** `<VideoPlayer provider="vimeo" videoId="..." title="..." />` or `provider="cloudflare" playbackId="..."`.
+- **Inline:** `<VideoPlayer provider="bunny" libraryId="123456" videoId="<guid>" />`, `provider="vimeo" videoId="..."` or `provider="cloudflare" playbackId="..."`. Prefer the registry, so ids live in one place.
+- **Bunny Stream** is the provider for paid lesson recordings: the embed link is signed on the server after the enrollment check. Setup, security settings and checks: [Lesson recordings with Bunny Stream](./video-bunny.md).
 
 Optional env **`NEXT_PUBLIC_CLOUDFLARE_STREAM_CUSTOMER`** overrides default iframe host; otherwise defaults apply per [`VideoPlayer`](../components/mdx/VideoPlayer.tsx).
 
-Provider notes: Vimeo suits simple iframe embeds; Cloudflare Stream supports richer token patterns later — current code uses plain iframe URLs until signing is implemented server-side.
+Provider notes: Bunny embeds are signed with `BUNNY_STREAM_TOKEN_KEY` (server env). Vimeo and Cloudflare embeds use plain, unsigned iframe URLs, so anyone with the id can watch; don't use them for paid content.
 
 ## ResourceLink
 

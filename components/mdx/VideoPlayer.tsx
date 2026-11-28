@@ -1,7 +1,12 @@
 import type { CourseVideoMap } from "@/lib/offering-videos";
+import { bunnyEmbedUrl, isValidBunnyLibraryId, isValidBunnyVideoId } from "@/lib/bunny-stream";
+import { logDevWarning, logProdDiagnostic } from "@/lib/logger";
 
 /**
- * Direct iframe embed props (Vimeo or Cloudflare Stream). Not DRM — see README.
+ * Direct iframe embed props (Vimeo, Cloudflare Stream or Bunny Stream). Not DRM — see README.
+ *
+ * This is a server component: Bunny links are signed here, after the lesson route's enrollment
+ * check, with a key from server env (lib/bunny-stream.ts). Do not turn it into a client component.
  *
  * For MDX inside a lesson, the page wraps {@link createLessonVideoPlayer} so you can also pass
  * `{ assetId }` and resolve rows from `content/offerings/<slug>/videos.yaml`.
@@ -19,6 +24,13 @@ export type VideoPlayerProps =
   | {
       provider: "cloudflare";
       playbackId: string;
+      title?: string;
+      poster?: string;
+    }
+  | {
+      provider: "bunny";
+      libraryId: string;
+      videoId: string;
       title?: string;
       poster?: string;
     };
@@ -60,6 +72,25 @@ export function VideoPlayer(props: VideoPlayerProps) {
       );
     }
     iframeSrc = cloudflareIframeSrc(id);
+  } else if (props.provider === "bunny") {
+    const libraryId = String(props.libraryId ?? "").trim();
+    const videoId = String(props.videoId ?? "").trim().toLowerCase();
+    if (!isValidBunnyLibraryId(libraryId) || !isValidBunnyVideoId(videoId)) {
+      return (
+        <div className="my-8 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          Bunny video needs a numeric <code className="font-mono">libraryId</code> and the video GUID as{" "}
+          <code className="font-mono">videoId</code> (in <code className="font-mono">videos.yaml</code> or the MDX
+          props).
+        </div>
+      );
+    }
+    const embed = bunnyEmbedUrl(libraryId, videoId);
+    if (!embed.signed) {
+      // Plays only while the library has token auth off, i.e. the video is effectively public.
+      logDevWarning("VideoPlayer", "BUNNY_STREAM_TOKEN_KEY not set; Bunny embed is unsigned");
+      logProdDiagnostic("VideoPlayer", "bunny_unsigned_embed");
+    }
+    iframeSrc = embed.src;
   } else {
     const _exhaustive: never = props;
     return _exhaustive;
@@ -81,6 +112,9 @@ export function VideoPlayer(props: VideoPlayerProps) {
           className="absolute inset-0 h-full w-full border-0"
           allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
           allowFullScreen
+          loading="lazy"
+          // Bunny's allowed-domain check reads the Referer; send our origin to the player host.
+          referrerPolicy="strict-origin-when-cross-origin"
         />
       </div>
     </figure>

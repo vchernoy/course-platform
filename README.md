@@ -46,6 +46,7 @@ Open [http://localhost:3000](http://localhost:3000). In dev, offering footers ma
 | [docs/auth-and-visibility.md](docs/auth-and-visibility.md) | Clerk, `students.yaml`, `admins.yaml` (offering + optional site scopes), middleware, `/p`, `/s`, `/offerings`, admin routes, security boundaries |
 | [docs/content-layout.md](docs/content-layout.md) | `offering.yaml`, `site.yaml`, `videos.yaml`, `assets/`, slugs, copying offerings |
 | [docs/mdx-authoring.md](docs/mdx-authoring.md) | Components, Quiz, VideoPlayer, callouts, details, LaTeX |
+| [docs/video-bunny.md](docs/video-bunny.md) | Lesson recordings on Bunny Stream: library setup, signed playback, checks, cost |
 | [docs/content-sources.md](docs/content-sources.md) | `config/sources.yaml`: customers, and the public and private repos their users and content come from |
 
 ## Scripts

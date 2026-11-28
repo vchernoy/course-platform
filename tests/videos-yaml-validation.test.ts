@@ -45,7 +45,30 @@ describe("validateVideosContent", () => {
             x: { provider: "youtube", videoId: "1" },
           },
         }),
-      /provider must be "vimeo" or "cloudflare"/
+      /provider must be "vimeo", "cloudflare" or "bunny"/
     );
+  });
+
+  it("accepts bunny entries (numeric or string library id, GUID lowercased)", () => {
+    const map = validateVideosContent({
+      videos: {
+        "lesson-01": { provider: "bunny", libraryId: 123456, videoId: "0F1E2D3C-4B5A-6978-8A9B-ACBDCEDF0123", title: "L1" },
+        "lesson-02": { provider: "bunny", libraryId: "654321", videoId: "0f1e2d3c-4b5a-6978-8a9b-acbdcedf0124" },
+      },
+    });
+    assert.deepEqual(map["lesson-01"], {
+      provider: "bunny",
+      libraryId: "123456",
+      videoId: "0f1e2d3c-4b5a-6978-8a9b-acbdcedf0123",
+      title: "L1",
+    });
+    assert.equal(map["lesson-02"]!.provider, "bunny");
+  });
+
+  it("rejects bunny entries with bad ids", () => {
+    const guid = "0f1e2d3c-4b5a-6978-8a9b-acbdcedf0123";
+    assert.throws(() => validateVideosContent({ videos: { a: { provider: "bunny", libraryId: "lib", videoId: guid } } }), /libraryId must be the numeric/);
+    assert.throws(() => validateVideosContent({ videos: { a: { provider: "bunny", libraryId: "1", videoId: "abc" } } }), /videoId must be the Bunny video GUID/);
+    assert.throws(() => validateVideosContent({ videos: { a: { provider: "bunny", videoId: guid } } }), /libraryId/);
   });
 });
