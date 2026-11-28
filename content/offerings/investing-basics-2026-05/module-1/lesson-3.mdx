@@ -20,3 +20,20 @@
 This optional ActiveMD example runs independently of the existing calculator.
 
 <ActiveDocument source="../assets/compound-interest.md" />
+
+## ActiveMD written in this MDX file
+
+The block below has its own calculation scope. Ordinary MDX components can appear before and after it.
+
+````active-md
+```calc
+input hours = 2 in 0..12
+cost = hours * 50
+```
+
+Time: :edit[Hours]{input=hours} hours.
+
+Cost: **:value[cost]{format=fixed:2}**.
+
+$$C = {{hours}} \times 50 = {{cost | fixed:2}}$$
+````

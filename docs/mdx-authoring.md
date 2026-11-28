@@ -271,3 +271,39 @@ preview defaults and multiple serialized preview documents. `npm run test:browse
 client component to check hydration, numeric/math updates, independent instances
 and unmount/remount in Chromium, Firefox and WebKit. It does not bypass or test
 Clerk, and is not proof of authenticated production route acceptance.
+
+### Write ActiveMD directly inside an MDX file
+
+Use an explicit `active-md` fence. Four backticks around the block allow the
+usual three-backtick calc fence inside it:
+
+`````mdx
+<Details title="Normal MDX">Existing components still work.</Details>
+
+````active-md
+```calc
+input hours = 2 in 0..12
+cost = hours * 50
+```
+
+:edit[Hours]{input=hours}
+
+Cost: :value[cost]{format=fixed:2}.
+
+$$C = {{hours}} \times 50 = {{cost | fixed:2}}$$
+````
+`````
+
+Each fence is an independent ActiveMD document. Variables do not flow between
+fences, asset-backed documents or surrounding MDX. Inside it, write ActiveMD
+Markdown, controls and math; platform JSX components such as `VideoPlayer` stay
+outside the fence. The same 64 KiB source limit, sanitized renderer and client
+lifecycle apply. Diagnostics use line/column positions within the embedded block.
+
+This form works with MDX `blockJS` enabled: code content is passed as a literal
+string, not as a JSX JavaScript expression. Ordinary `calc` code examples remain
+examples; unmarked calc/controls throughout the MDX page are not automatically
+reactive. Full-page plugin integration still needs separate design and tests.
+
+Asset-backed documents resolve through `config/sources.yaml`, including external
+course repositories, and never fall back to an unregistered local offering.

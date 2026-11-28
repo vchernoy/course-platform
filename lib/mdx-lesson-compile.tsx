@@ -7,7 +7,7 @@ import rehypeSlug from "rehype-slug";
 import remarkDirective from "remark-directive";
 import remarkMath from "remark-math";
 import { Anchor } from "@/components/mdx/Anchor";
-import { createActiveDocument } from "@/components/mdx/ActiveDocument";
+import { createActiveDocument, createInlineActiveDocument } from "@/components/mdx/ActiveDocument";
 import { AnchorBlock } from "@/components/mdx/AnchorBlock";
 import { Callout } from "@/components/mdx/Callout";
 import { CompoundInterestCalculator } from "@/components/mdx/CompoundInterestCalculator";
@@ -20,6 +20,7 @@ import { Quiz } from "@/components/mdx/Quiz";
 import { createLessonVideoPlayer } from "@/components/mdx/VideoPlayer";
 import { rewriteLessonAssetUrls } from "@/lib/offering-assets";
 import { remarkCalloutDirectives } from "@/lib/mdx-callouts";
+import { remarkActiveBlocks } from "@/lib/mdx-active-blocks";
 import type { OfferingResourceMap } from "@/lib/offering-resources";
 import type { OfferingVideoMap } from "@/lib/offering-videos";
 
@@ -62,7 +63,7 @@ export type CompileLessonMdxParams = {
 function lessonMdxOptions(): NonNullable<MDXRemoteProps["options"]> {
   return {
     mdxOptions: {
-      remarkPlugins: [remarkDirective, remarkCalloutDirectives, remarkMath],
+      remarkPlugins: [remarkActiveBlocks, remarkDirective, remarkCalloutDirectives, remarkMath],
       rehypePlugins: [
         rehypeKatex,
         rehypeSlug,
@@ -117,6 +118,7 @@ function lessonMdxComponents(
   return {
     Anchor,
     ActiveDocument: createActiveDocument(offeringSlug),
+    ActiveDocumentInline: createInlineActiveDocument(),
     AnchorBlock,
     Callout,
     CompoundInterestCalculator,
@@ -158,6 +160,7 @@ function lessonMdxComponentsForHtmlPreview(
   return {
     ...base,
     ActiveDocument: createActiveDocument(offeringSlug, true),
+    ActiveDocumentInline: createInlineActiveDocument(true),
     Quiz: HtmlPreviewQuizPlaceholder,
     CompoundInterestCalculator: HtmlPreviewCompoundInterestPlaceholder,
   };

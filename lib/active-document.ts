@@ -1,25 +1,31 @@
 import fs from "node:fs";
 import path from "node:path";
 import { assertSafeAssetSegments, assertSafeSlug } from "./slug";
+import { containedFileRealPath, offeringDir } from "./content-roots";
 
 const MAX_BYTES = 64 * 1024;
 
 /** Server-only local source; the caller must already authorize the lesson/preview. */
-export function readActiveDocument(offeringSlug: string, source: string, contentRoot = path.join(process.cwd(), "content")): string {
+export function readActiveDocument(offeringSlug: string, source: string): string {
   assertSafeSlug("offering", offeringSlug);
   if (typeof source !== "string" || !source.startsWith("../assets/") || !source.endsWith(".md")) {
     throw new Error("ActiveDocument source must be ../assets/<file>.md");
   }
   const segments = source.slice("../assets/".length).split("/");
   assertSafeAssetSegments(segments);
-  // Reject symlinks at every level, including the offering/assets directories.
-  let current = contentRoot;
-  if (fs.lstatSync(current).isSymbolicLink()) throw new Error("ActiveDocument symlinks are not allowed");
-  for (const segment of ["offerings", offeringSlug, "assets", ...segments]) {
+  const dir = offeringDir(offeringSlug);
+  if (!dir) throw new Error("ActiveDocument offering is not registered");
+  const assets = path.join(dir, "assets");
+  // Keep the no-symlink contract, including the offering/assets directory itself.
+  if (fs.realpathSync(assets) !== path.resolve(assets)) throw new Error("ActiveDocument symlinks are not allowed");
+  let current = assets;
+  for (const segment of segments) {
     current = path.join(current, segment);
     if (fs.lstatSync(current).isSymbolicLink()) throw new Error("ActiveDocument symlinks are not allowed");
   }
-  const fd = fs.openSync(current, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
+  const file = containedFileRealPath(current, assets);
+  if (!file) throw new Error("ActiveDocument source is outside its offering assets");
+  const fd = fs.openSync(file, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
   try {
     const stat = fs.fstatSync(fd);
     if (!stat.isFile() || stat.size > MAX_BYTES) throw new Error("ActiveDocument must be a file of at most 64 KiB");
